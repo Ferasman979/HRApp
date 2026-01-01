@@ -62,20 +62,16 @@ az acr build --registry $ACR_NAME --image grafana-custom:latest "monitoring/graf
 # 6. Deploy Grafana Container App
 Write-Host "Deploying Grafana..."
 # Note: Using custom image now
-az containerapp create `
+az containerapp update `
   --name hr-app-grafana `
   --resource-group $RG_NAME `
-  --environment $ENV_NAME `
   --image "$ACR_NAME.azurecr.io/grafana-custom:latest" `
-  --registry-server "$ACR_NAME.azurecr.io" `
-  --target-port 3000 `
-  --ingress external `
-  --env-vars `
-    GF_SECURITY_ADMIN_PASSWORD=admin123 `
+  --set-env-vars `
     GF_SECURITY_ALLOW_EMBEDDING=true `
     GF_AUTH_ANONYMOUS_ENABLED=true `
-    GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer `
-  --query properties.configuration.ingress.fqdn
+    GF_AUTH_ANONYMOUS_ORG_ROLE=Admin `
+    GF_AUTH_DISABLE_LOGIN_FORM=false
+
 
 
 $GRAFANA_URL = $(az containerapp show --name hr-app-grafana --resource-group $RG_NAME --query properties.configuration.ingress.fqdn -o tsv)
