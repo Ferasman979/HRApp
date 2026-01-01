@@ -52,19 +52,20 @@ jobs:
         run: |
           az acr login --name ${{ env.ACR_NAME }}
 
-      # 2. BUILD MONITORING IMAGES
-      - name: Build Prometheus & Grafana
-        uses: azure/CLI@v1
-        with:
-          inlineScript: |
-            # Prometheus
-            az acr build --registry ${{ env.ACR_NAME }} --image prometheus-custom:latest "monitoring/prometheus"
-            
-            # Grafana
-            az acr build --registry ${{ env.ACR_NAME }} --image grafana-custom:latest "monitoring/grafana"
+      # 2. BUILD PROMETHEUS (Runner-side Build)
+      - name: Build & Push Prometheus
+        run: |
+          docker build -t ${{ env.ACR_NAME }}.azurecr.io/prometheus-custom:latest monitoring/prometheus
+          docker push ${{ env.ACR_NAME }}.azurecr.io/prometheus-custom:latest
 
-      # 3. DEPLOY MONITORING (To get URLs)
-      - name: Deploy Monitoring Stack
+      # 3. BUILD GRAFANA (Runner-side Build)
+      - name: Build & Push Grafana
+        run: |
+          docker build -t ${{ env.ACR_NAME }}.azurecr.io/grafana-custom:latest monitoring/grafana
+          docker push ${{ env.ACR_NAME }}.azurecr.io/grafana-custom:latest
+
+      # 4. DEPLOY MONITORING (To get URLs)
+      - name: Deploy Monitoring Apps
         uses: azure/CLI@v1
         with:
           inlineScript: |
@@ -83,18 +84,7 @@ jobs:
             PROM_URL=$(az containerapp show -n hr-app-prometheus -g ${{ env.RG_NAME }} --query properties.configuration.ingress.fqdn -o tsv)
             echo "PROMETHEUS_URL=https://$PROM_URL" >> $GITHUB_ENV
 
-            # Deploy Grafana (Inject Prometheus URL)
-            # We use sed to replace the placeholder in datasources template locally before build? 
-            # Actually, our previous script handled this via "datasources.yml" inside the image. 
-            # Better approach: Pass PROMETHEUS_URL as env var if Grafana supports it, 
-            # OR relying on internal DNS? 
-            # Let's use the simplest: The custom image already has datasources.yml. 
-            # We will use the datasources.template.yml approach if we want to be dynamic, 
-            # but for now, let's assume the internal DNS `https://hr-app-prometheus` works if in same env.
-            # Azure Container Apps internal DNS: https://hr-app-prometheus.internal...
-            # But the 'datasources.yml' had hardcoded URL? 
-            # Let's fix the datasource to use the internal FQDN or update it. 
-            
+            # Deploy Grafana
             az containerapp create \
               --name hr-app-grafana \
               --resource-group ${{ env.RG_NAME }} \
@@ -113,16 +103,18 @@ jobs:
             # Get Grafana URL
             GRAF_URL=$(az containerapp show -n hr-app-grafana -g ${{ env.RG_NAME }} --query properties.configuration.ingress.fqdn -o tsv)
             echo "GRAFANA_URL=https://$GRAF_URL" >> $GITHUB_ENV
-            echo "Got Grafana URL: https://$GRAF_URL"
 
-      # 4. BUILD BACKEND (MCP Agents)
-      - name: Build & Deploy Backend Agents
+
+      # 5. BUILD BACKEND (MCP Agents)
+      - name: Build & Push Backend Agents
+        run: |
+          docker build -t ${{ env.ACR_NAME }}.azurecr.io/hr-agent-mcp:latest hr-agent-mcp
+          docker push ${{ env.ACR_NAME }}.azurecr.io/hr-agent-mcp:latest
+
+      - name: Deploy Backend Agents
         uses: azure/CLI@v1
         with:
           inlineScript: |
-            # Build
-            az acr build --registry ${{ env.ACR_NAME }} --image hr-agent-mcp:latest "hr-agent-mcp"
-            
             # Deploy Processor
             az containerapp create \
               --name hr-mcp-processor \
@@ -153,24 +145,25 @@ jobs:
                 GROQ_MODEL="llama-3.3-70b-versatile" \
                 LLAMA_PARSE_API_KEY="${{ secrets.LLAMA_PARSE_API_KEY }}"
 
-      # 5. BUILD & DEPLOY FRONTEND
-      - name: Build & Deploy Frontend
+
+      # 6. BUILD & DEPLOY FRONTEND
+      - name: Build & Push Frontend
+        run: |
+          echo "Building Frontend with Grafana URL: ${{ env.GRAFANA_URL }}"
+          # Create dockerignore
+          echo -e "node_modules\n.next\n.git" > nextjs-hrapp-project/.dockerignore
+          
+          docker build \
+            --build-arg NEXT_PUBLIC_GRAFANA_URL=${{ env.GRAFANA_URL }} \
+            -t ${{ env.ACR_NAME }}.azurecr.io/hr-app-frontend:latest \
+            nextjs-hrapp-project
+            
+          docker push ${{ env.ACR_NAME }}.azurecr.io/hr-app-frontend:latest
+
+      - name: Deploy Frontend App
         uses: azure/CLI@v1
         with:
           inlineScript: |
-            echo "Building Frontend with Grafana URL: ${{ env.GRAFANA_URL }}"
-            
-            # Update .dockerignore dynamically to ensure fast builds
-            echo -e "node_modules\n.next\n.git" > nextjs-hrapp-project/.dockerignore
-
-            # Build with Build-Arg
-            az acr build \
-              --registry ${{ env.ACR_NAME }} \
-              --image hr-app-frontend:latest \
-              --build-arg NEXT_PUBLIC_GRAFANA_URL=${{ env.GRAFANA_URL }} \
-              "nextjs-hrapp-project"
-
-            # Deploy
             az containerapp create \
               --name hr-app-frontend \
               --resource-group ${{ env.RG_NAME }} \
@@ -185,3 +178,4 @@ jobs:
                 NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}" \
                 NEXTAUTH_URL="https://hr-app-frontend.nicemushroom-89003adf.canadacentral.azurecontainerapps.io" \
                 NEXT_PUBLIC_GRAFANA_URL=${{ env.GRAFANA_URL }}
+
