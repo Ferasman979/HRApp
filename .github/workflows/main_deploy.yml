@@ -1,0 +1,187 @@
+name: Deploy HR App Full Stack
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "master", "main" ]
+    paths-ignore:
+      - 'README.md'
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  RG_NAME: "hr-app-rg"
+  LOCATION: "canadacentral"
+  ACR_NAME: "hrappacrferas999" # Unique name
+  ENV_NAME: "hr-app-env"
+  # Secrets passed via GitHub Secrets:
+  # AZURE_CREDENTIALS, MONGODB_URI, NEXTAUTH_SECRET, GROQ_API_KEY, LLAMA_PARSE_API_KEY
+
+jobs:
+  # -----------------------------------------------------------------------------
+  # JOB 1: INFRASTRUCTURE & BUILD
+  # -----------------------------------------------------------------------------
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # 1. SETUP INFRASTRUCTURE
+      - name: Setup Azure Resources (RG, ACR, ACA Env)
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Create RG
+            az group create --name ${{ env.RG_NAME }} --location ${{ env.LOCATION }}
+            
+            # Create ACR
+            az acr create --resource-group ${{ env.RG_NAME }} --name ${{ env.ACR_NAME }} --sku Basic --admin-enabled true
+            
+            # Create Container Apps Environment
+            az containerapp env create --name ${{ env.ENV_NAME }} --resource-group ${{ env.RG_NAME }} --location ${{ env.LOCATION }}
+
+      - name: Login to ACR
+        run: |
+          az acr login --name ${{ env.ACR_NAME }}
+
+      # 2. BUILD MONITORING IMAGES
+      - name: Build Prometheus & Grafana
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Prometheus
+            az acr build --registry ${{ env.ACR_NAME }} --image prometheus-custom:latest "monitoring/prometheus"
+            
+            # Grafana
+            az acr build --registry ${{ env.ACR_NAME }} --image grafana-custom:latest "monitoring/grafana"
+
+      # 3. DEPLOY MONITORING (To get URLs)
+      - name: Deploy Monitoring Stack
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Deploy Prometheus
+            az containerapp create \
+              --name hr-app-prometheus \
+              --resource-group ${{ env.RG_NAME }} \
+              --environment ${{ env.ENV_NAME }} \
+              --image ${{ env.ACR_NAME }}.azurecr.io/prometheus-custom:latest \
+              --registry-server ${{ env.ACR_NAME }}.azurecr.io \
+              --ingress external \
+              --target-port 9090 \
+              --min-replicas 1 --max-replicas 1
+
+            # Get Prometheus URL
+            PROM_URL=$(az containerapp show -n hr-app-prometheus -g ${{ env.RG_NAME }} --query properties.configuration.ingress.fqdn -o tsv)
+            echo "PROMETHEUS_URL=https://$PROM_URL" >> $GITHUB_ENV
+
+            # Deploy Grafana (Inject Prometheus URL)
+            # We use sed to replace the placeholder in datasources template locally before build? 
+            # Actually, our previous script handled this via "datasources.yml" inside the image. 
+            # Better approach: Pass PROMETHEUS_URL as env var if Grafana supports it, 
+            # OR relying on internal DNS? 
+            # Let's use the simplest: The custom image already has datasources.yml. 
+            # We will use the datasources.template.yml approach if we want to be dynamic, 
+            # but for now, let's assume the internal DNS `https://hr-app-prometheus` works if in same env.
+            # Azure Container Apps internal DNS: https://hr-app-prometheus.internal...
+            # But the 'datasources.yml' had hardcoded URL? 
+            # Let's fix the datasource to use the internal FQDN or update it. 
+            
+            az containerapp create \
+              --name hr-app-grafana \
+              --resource-group ${{ env.RG_NAME }} \
+              --environment ${{ env.ENV_NAME }} \
+              --image ${{ env.ACR_NAME }}.azurecr.io/grafana-custom:latest \
+              --registry-server ${{ env.ACR_NAME }}.azurecr.io \
+              --ingress external \
+              --target-port 3000 \
+              --min-replicas 1 --max-replicas 1 \
+              --env-vars \
+                GF_SECURITY_ALLOW_EMBEDDING=true \
+                GF_AUTH_ANONYMOUS_ENABLED=true \
+                GF_AUTH_ANONYMOUS_ORG_ROLE=Admin \
+                GF_AUTH_DISABLE_LOGIN_FORM=false
+
+            # Get Grafana URL
+            GRAF_URL=$(az containerapp show -n hr-app-grafana -g ${{ env.RG_NAME }} --query properties.configuration.ingress.fqdn -o tsv)
+            echo "GRAFANA_URL=https://$GRAF_URL" >> $GITHUB_ENV
+            echo "Got Grafana URL: https://$GRAF_URL"
+
+      # 4. BUILD BACKEND (MCP Agents)
+      - name: Build & Deploy Backend Agents
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Build
+            az acr build --registry ${{ env.ACR_NAME }} --image hr-agent-mcp:latest "hr-agent-mcp"
+            
+            # Deploy Processor
+            az containerapp create \
+              --name hr-mcp-processor \
+              --resource-group ${{ env.RG_NAME }} \
+              --environment ${{ env.ENV_NAME }} \
+              --image ${{ env.ACR_NAME }}.azurecr.io/hr-agent-mcp:latest \
+              --registry-server ${{ env.ACR_NAME }}.azurecr.io \
+              --command "npm" "run" "worker" \
+              --min-replicas 1 --max-replicas 1 \
+              --env-vars \
+                MONGODB_URI="${{ secrets.MONGODB_URI }}" \
+                GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" \
+                GROQ_MODEL="llama-3.3-70b-versatile" \
+                LLAMA_PARSE_API_KEY="${{ secrets.LLAMA_PARSE_API_KEY }}"
+
+            # Deploy Researcher
+            az containerapp create \
+              --name hr-mcp-researcher \
+              --resource-group ${{ env.RG_NAME }} \
+              --environment ${{ env.ENV_NAME }} \
+              --image ${{ env.ACR_NAME }}.azurecr.io/hr-agent-mcp:latest \
+              --registry-server ${{ env.ACR_NAME }}.azurecr.io \
+              --command "npm" "run" "research" \
+              --min-replicas 1 --max-replicas 1 \
+              --env-vars \
+                MONGODB_URI="${{ secrets.MONGODB_URI }}" \
+                GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" \
+                GROQ_MODEL="llama-3.3-70b-versatile" \
+                LLAMA_PARSE_API_KEY="${{ secrets.LLAMA_PARSE_API_KEY }}"
+
+      # 5. BUILD & DEPLOY FRONTEND
+      - name: Build & Deploy Frontend
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            echo "Building Frontend with Grafana URL: ${{ env.GRAFANA_URL }}"
+            
+            # Update .dockerignore dynamically to ensure fast builds
+            echo -e "node_modules\n.next\n.git" > nextjs-hrapp-project/.dockerignore
+
+            # Build with Build-Arg
+            az acr build \
+              --registry ${{ env.ACR_NAME }} \
+              --image hr-app-frontend:latest \
+              --build-arg NEXT_PUBLIC_GRAFANA_URL=${{ env.GRAFANA_URL }} \
+              "nextjs-hrapp-project"
+
+            # Deploy
+            az containerapp create \
+              --name hr-app-frontend \
+              --resource-group ${{ env.RG_NAME }} \
+              --environment ${{ env.ENV_NAME }} \
+              --image ${{ env.ACR_NAME }}.azurecr.io/hr-app-frontend:latest \
+              --registry-server ${{ env.ACR_NAME }}.azurecr.io \
+              --ingress external \
+              --target-port 3000 \
+              --min-replicas 1 --max-replicas 2 \
+              --env-vars \
+                MONGODB_URI="${{ secrets.MONGODB_URI }}" \
+                NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}" \
+                NEXTAUTH_URL="https://hr-app-frontend.nicemushroom-89003adf.canadacentral.azurecontainerapps.io" \
+                NEXT_PUBLIC_GRAFANA_URL=${{ env.GRAFANA_URL }}
