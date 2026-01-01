@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'hrs-frontend'
+    scheme: https
+    static_configs:
+      - targets: ['hr-app-frontend.nicemushroom-89003adf.canadacentral.azurecontainerapps.io']
+    metrics_path: /api/metrics
+
+  - job_name: 'hrs-processor'
+    scheme: https
+    static_configs:
+      - targets: ['hr-mcp-processor.internal.nicemushroom-89003adf.canadacentral.azurecontainerapps.io']
+    metrics_path: /metrics
+
+  - job_name: 'hrs-researcher'
+    scheme: https
+    static_configs:
+      - targets: ['hr-mcp-researcher.internal.nicemushroom-89003adf.canadacentral.azurecontainerapps.io']
+    metrics_path: /metrics
+

@@ -1,0 +1,76 @@
+name: Build and Deploy to ACA
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ACR_NAME: hrappacrferas999  # Matches setup_aca.ps1
+  RG_NAME: hr-app-rg
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to ACR
+        run: az acr login --name ${{ env.ACR_NAME }}
+
+      # Build Frontend
+      - name: Build and Push Frontend
+        uses: docker/build-push-action@v4
+        with:
+          context: ./nextjs-hrapp-project
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/hrapp:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/hrapp:latest
+
+      # Build MCP Agent
+      - name: Build and Push MCP Agent
+        uses: docker/build-push-action@v4
+        with:
+          context: ./hr-agent-mcp
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/mcp-agent:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/mcp-agent:latest
+
+      # Deploy Frontend
+      - name: Deploy Frontend to Container App
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          appSourcePath: ${{ github.workspace }}/nextjs-hrapp-project
+          acrName: ${{ env.ACR_NAME }}
+          containerAppName: hr-app-frontend
+          resourceGroup: ${{ env.RG_NAME }}
+          imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/hrapp:${{ github.sha }}
+
+      # Deploy Processor
+      - name: Deploy Processor to Container App
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          appSourcePath: ${{ github.workspace }}/hr-agent-mcp
+          acrName: ${{ env.ACR_NAME }}
+          containerAppName: hr-mcp-processor
+          resourceGroup: ${{ env.RG_NAME }}
+          imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/mcp-agent:${{ github.sha }}
+          containerCommand: "npm run worker"
+
+      # Deploy Researcher
+      - name: Deploy Researcher to Container App
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          appSourcePath: ${{ github.workspace }}/hr-agent-mcp
+          acrName: ${{ env.ACR_NAME }}
+          containerAppName: hr-mcp-researcher
+          resourceGroup: ${{ env.RG_NAME }}
+          imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/mcp-agent:${{ github.sha }}
+          containerCommand: "npm run research"

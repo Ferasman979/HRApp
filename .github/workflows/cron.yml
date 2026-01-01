@@ -1,0 +1,15 @@
+name: Daily Job Expiry Check
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Midnight UTC
+  workflow_dispatch:
+
+jobs:
+  trigger-expiry:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Expiry Endpoint
+        run: |
+          # Replace with your actual production URL after deployment
+          curl -X GET https://hr-app-frontend.azurecontainerapps.io/api/cron/process-expiry

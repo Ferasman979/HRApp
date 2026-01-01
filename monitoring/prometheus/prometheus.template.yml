@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'hrs-frontend'
+    scheme: https
+    static_configs:
+      - targets: ['__FRONTEND_HOST__']
+    metrics_path: /api/metrics
+
+  - job_name: 'hrs-processor'
+    scheme: https
+    static_configs:
+      - targets: ['__PROCESSOR_HOST__']
+    metrics_path: /metrics
+
+  - job_name: 'hrs-researcher'
+    scheme: https
+    static_configs:
+      - targets: ['__RESEARCHER_HOST__']
+    metrics_path: /metrics
