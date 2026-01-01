@@ -37,7 +37,17 @@ export const jobCount = new client.Counter({
     registers: [register]
 });
 
+// 4. DB Application Count (Gauge)
+export const dbAppCount = new client.Gauge({
+    name: 'db_applications_total',
+    help: 'Number of applications in MongoDB by status',
+    labelNames: ['status'],
+    registers: [register]
+});
+
 // --- Server Helper ---
+import Application from './models/Application';
+
 export function startMetricsServer(port: number = 9090) {
     const app = express();
 
@@ -52,5 +62,23 @@ export function startMetricsServer(port: number = 9090) {
 
     app.listen(port, () => {
         console.log(`[Prometheus] Metrics server listening on port ${port}`);
+
+        // Start Polling DB Metrics (every 30s)
+        setInterval(async () => {
+            try {
+                const stats = await Application.aggregate([
+                    { $group: { _id: "$processingStatus", count: { $sum: 1 } } }
+                ]);
+
+                // Reset to 0 first (optional, but safe)
+                // Actually, just update what we find.
+                stats.forEach((s: any) => {
+                    const status = s._id || 'unknown';
+                    dbAppCount.set({ status }, s.count);
+                });
+            } catch (e) {
+                console.error("[Metrics] Failed to poll DB stats:", e);
+            }
+        }, 30000);
     });
 }

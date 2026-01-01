@@ -52,8 +52,12 @@ export async function scrapeUrl(url: string): Promise<ScrapedPage> {
             }
         });
 
-        // 3. Robust Navigation (Fail Fast, Don't Wait for Analytics)
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+        // 3. Robust Navigation (Better for SPAs)
+        try {
+            await page.goto(url, { waitUntil: 'networkidle2', timeout: 25000 });
+        } catch (e) {
+            console.log(`[Browser] NetworkIdle timed out for ${url}, trying to continue with loaded content...`);
+        }
 
         const title = await page.title();
 

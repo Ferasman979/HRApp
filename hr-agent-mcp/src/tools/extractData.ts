@@ -205,6 +205,11 @@ TARGET JSON FORMAT:
         const rawJson = response.choices[0].message.content?.trim() || "{}";
         const data = JSON.parse(rawJson) as ExtractedData;
 
+        // DEBUG: Log the links found by the LLM
+        console.log("--------------------------------------------------");
+        console.log("[ExtractData] LLM Found Links:", JSON.stringify(data.extractedLinks, null, 2));
+        console.log("--------------------------------------------------");
+
         // Capture Real Token Usage
         if (response.usage) {
             data.usage = {
