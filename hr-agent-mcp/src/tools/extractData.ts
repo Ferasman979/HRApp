@@ -106,43 +106,49 @@ export async function extractData(resumeText: string, jobId?: string): Promise<E
         console.log(`Raw Cosine: ${rawScore.toFixed(4)} | Scaled Score: ${similarityScore.toFixed(0)}`);
     }
 
-    // 3. Retrieval (RAG)
-    const chunks: string[] = [];
-    let start = 0;
-    while (start < resumeText.length) {
-        const end = Math.min(start + CHUNK_SIZE, resumeText.length);
-        chunks.push(resumeText.substring(start, end));
-        if (end === resumeText.length) break;
-        start += (CHUNK_SIZE - OVERLAP);
+    // 3. Context Preparation (Smart RAG Bypass)
+    // If resume is small enough (< 25k chars ~ 6k tokens), send WHOLE text to avoid missing links/headers.
+    let context = "";
+    if (resumeText.length < 25000) {
+        console.log(`Resume is small (${resumeText.length} chars). Sending FULL text (Skipping RAG).`);
+        context = resumeText;
+    } else {
+        console.log(`Resume is large (${resumeText.length} chars). Using RAG retrieval...`);
+        const chunks: string[] = [];
+        let start = 0;
+        while (start < resumeText.length) {
+            const end = Math.min(start + CHUNK_SIZE, resumeText.length);
+            chunks.push(resumeText.substring(start, end));
+            if (end === resumeText.length) break;
+            start += (CHUNK_SIZE - OVERLAP);
+        }
+
+        const chunkEmbeddings = await getEmbeddings(chunks);
+
+        // Queries
+        const queries = [
+            "technical skills programming languages tools",
+            "work experience roles responsibilities company names",
+            "quantitative results metrics achievements",
+            "github linkedin portfolio links urls contact info"
+        ];
+        if (jobContext) queries.push(`Relevant skills for: ${jobContext}`);
+
+        const queryEmbeddings = await getEmbeddings(queries);
+
+        const relevantChunkIndices = new Set<number>();
+        for (const queryVec of queryEmbeddings) {
+            const scores = chunkEmbeddings.map((chunkVec, i) => ({
+                index: i,
+                score: cosineSimilarity(queryVec, chunkVec)
+            }));
+            scores.sort((a, b) => b.score - a.score);
+            scores.slice(0, 5).forEach(s => relevantChunkIndices.add(s.index));
+        }
+
+        const relevantChunks = Array.from(relevantChunkIndices).sort((a, b) => a - b).map(i => chunks[i]);
+        context = relevantChunks.join("\n---\n");
     }
-
-    console.log("Generating embeddings for retrieval...");
-    const chunkEmbeddings = await getEmbeddings(chunks);
-
-    // Queries
-    const queries = [
-        "technical skills programming languages tools",
-        "work experience roles responsibilities company names",
-        "quantitative results metrics achievements",
-        "github linkedin portfolio links urls"
-    ];
-    if (jobContext) queries.push(`Relevant skills for: ${jobContext}`);
-
-    const queryEmbeddings = await getEmbeddings(queries);
-
-    const relevantChunkIndices = new Set<number>();
-    for (const queryVec of queryEmbeddings) {
-        const scores = chunkEmbeddings.map((chunkVec, i) => ({
-            index: i,
-            score: cosineSimilarity(queryVec, chunkVec)
-        }));
-        scores.sort((a, b) => b.score - a.score);
-        // INCREASED CHUNKS FROM 3 TO 5 TO GATHER ALL EVIDENCE
-        scores.slice(0, 5).forEach(s => relevantChunkIndices.add(s.index));
-    }
-
-    const relevantChunks = Array.from(relevantChunkIndices).sort((a, b) => a - b).map(i => chunks[i]);
-    const context = relevantChunks.join("\n---\n");
 
     // 4. LLM Generation
     const systemPrompt = `
@@ -153,8 +159,10 @@ CLASSIFICATION RULES:
 - Scope "SELF": Personal projects, freelance work (unless agency based), or individual practice.
 - Scope "TEAM": Hackathons, academic group projects, or non-corporate team efforts.
 
-LINK EXTRACTION:
-- Extract ALL URLs found (GitHub, LinkedIn, Personal Site, etc.)
+LINK EXTRACTION (CRITICAL):
+- Extract **FULL** URLs found (e.g. "https://github.com/username", NOT "https://github.com").
+- If the text says "github.com/foo", output "https://github.com/foo".
+- Do NOT truncate paths.
 
 EVIDENCE EXTRACTION RULES:
 - Extract **ALL** distinct pieces of evidence found in the text. 
@@ -165,7 +173,7 @@ TARGET JSON FORMAT:
 {
   "email": "<candidate email address>",
   "skills": ["<string>"],
-  "extractedLinks": [ { "type": "github|linkedin|portfolio|other", "url": "<string>" } ],
+  "extractedLinks": [ { "type": "github|linkedin|portfolio|other", "url": "<FULL_URL_STRING>" } ],
   "evidence": [
     {
       "action": "<what did they do>",
