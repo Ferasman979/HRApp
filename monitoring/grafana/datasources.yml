@@ -5,8 +5,8 @@ datasources:
     type: prometheus
     access: proxy
     orgId: 1
-    url: https://hr-app-prometheus.nicemushroom-89003adf.canadacentral.azurecontainerapps.io
+    url: http://hr-app-prometheus
     isDefault: true
     version: 1
     editable: true
-
+    editable: true
