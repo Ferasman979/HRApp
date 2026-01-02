@@ -205,19 +205,83 @@ TARGET JSON FORMAT:
         const rawJson = response.choices[0].message.content?.trim() || "{}";
         const data = JSON.parse(rawJson) as ExtractedData;
 
-        // DEBUG: Log the links found by the LLM
-        console.log("--------------------------------------------------");
-        console.log("[ExtractData] LLM Found Links:", JSON.stringify(data.extractedLinks, null, 2));
-        console.log("--------------------------------------------------");
+        // --- SPECIALIST LINK EXTRACTION (Lightweight LLM) ---
+        // Using Llama-3.1-8b-instant for direct text extraction to avoid 70b's tendency to "clean" URLs.
+        console.log("Running Specialist Link Extractor (llama-3.1-8b-instant)...");
+        try {
+            const linkResponse = await groq.chat.completions.create({
+                model: 'llama-3.1-8b-instant', // Fast, cheap model
+                messages: [
+                    {
+                        role: 'system',
+                        content: `You are a strict URL Extractor.
+1. Return JSON with a "links" array.
+2. EXTRACT EXACT URL STRINGS ONLY. Do not modify, truncate, or add "https://" if not present.
+3. If the text says "github.com/username", output "github.com/username".
+4. If the text says "linkedin.com/in/foo", output "linkedin.com/in/foo".
+5. WARNING: Do NOT output root domains like "github.com" if a path is available.
+6. Look for "Website:", "GitHub:", "LinkedIn:" labels.
 
-        // Capture Real Token Usage
-        if (response.usage) {
-            data.usage = {
-                promptTokens: response.usage.prompt_tokens,
-                completionTokens: response.usage.completion_tokens
-            };
-            console.log(`[Groq Usage] Input: ${data.usage.promptTokens}, Output: ${data.usage.completionTokens}`);
+JSON Output: { "links": [ { "type": "string", "url": "string" } ] }`
+                    },
+                    { role: 'user', content: `Please find the links in this resume text:\n\n${context}` }
+                ],
+                response_format: { type: 'json_object' },
+                temperature: 0
+            });
+
+            // DEBUG: Log what text the 8b model actually saw
+            console.log("\n[LinkExtractor] Context Preview (First 500 chars):", context.substring(0, 500));
+            if (context.toLowerCase().includes('github')) {
+                const idx = context.toLowerCase().indexOf('github');
+                console.log("[LinkExtractor] Context Preview (Around 'github'):", context.substring(idx - 50, idx + 100));
+            }
+
+            const linkJson = JSON.parse(linkResponse.choices[0].message.content || "{}");
+
+            if (linkJson.links && Array.isArray(linkJson.links) && linkJson.links.length > 0) {
+                console.log(`[LinkExtractor] Lightweight model found ${linkJson.links.length} potential links.`);
+
+                // VALIDATION: Filter out root domains and junk
+                const validLinks = linkJson.links.filter((l: any) => {
+                    if (!l.url) return false;
+                    let url = l.url.toLowerCase().trim();
+
+                    // Fix missing protocol
+                    if (!url.startsWith('http')) {
+                        l.url = 'https://' + l.url;
+                        url = l.url.toLowerCase();
+                    }
+
+                    // Normalize Type (Fixes ValidationError)
+                    if (l.type) {
+                        l.type = l.type.toLowerCase();
+                        if (l.type === 'website') l.type = 'portfolio'; // Map website -> portfolio
+                    }
+
+                    // Reject Roots
+                    if (url === 'https://github.com' || url === 'https://github.com/') return false;
+                    if (url === 'https://linkedin.com' || url === 'https://linkedin.com/') return false;
+                    if (url === 'https://www.github.com' || url === 'https://www.linkedin.com') return false;
+
+                    return true;
+                });
+
+                console.log(`[LinkExtractor] Validated Links: ${validLinks.length} remaining.`);
+                data.extractedLinks = validLinks;
+            } else {
+                console.log("[LinkExtractor] Lightweight model found no links. Keeping original.");
+            }
+
+        } catch (err: any) {
+            console.error("Lightweight extraction failed:", err.message);
+            // Fallback: keep original data.extractedLinks from 70b model
         }
+
+        // DEBUG: Final Links
+        console.log("--------------------------------------------------");
+        console.log("[ExtractData] FINAL LINKS:", JSON.stringify(data.extractedLinks, null, 2));
+        console.log("--------------------------------------------------");
 
         // Attach the calculated score
         data.similarityScore = Math.round(similarityScore);

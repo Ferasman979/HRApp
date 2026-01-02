@@ -115,7 +115,7 @@ async function analystNode(state: any) {
     // Custom instructions based on link type
     let specificTask = "Summarize the key findings in 1-2 sentences, specifically highlighting relevance to the job requirements.";
     if (link.url.includes("github.com")) {
-        specificTask = "Extract ONLY the names and descriptions of the top repositories/projects found on this profile. Do NOT summarize the user's bio or followers. Format as a list of projects.";
+        specificTask = "Write a natural language paragraph summarizing the GitHub profile. Mention the user's bio, primary programming languages, and a general overview of their pinned or top repositories. Avoid technical lists or JSON formatting in the summary text.";
     }
 
     // Prompt for Agent 2 Analysis
@@ -136,7 +136,7 @@ async function analystNode(state: any) {
     Format: JSON
     {
         "status": "valid|dead|irrelevant",
-        "summary": "<The summary or project list>"
+        "summary": "<Natural language paragraph text>"
     }
     `;
 
@@ -161,7 +161,7 @@ async function analystNode(state: any) {
             results: [{
                 url: link.url,
                 type: link.type,
-                summary: data.summary,
+                summary: (typeof data.summary === 'object') ? JSON.stringify(data.summary) : data.summary,
                 status: data.status
             }],
             currentIndex: state.currentIndex + 1

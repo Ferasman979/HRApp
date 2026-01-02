@@ -128,17 +128,18 @@ async function startResearchWorker() {
                     }
                 }
 
-                // 5. Update Application
-                app.researchStatus = 'completed';
-                app.researchResults = results;
-                app.analystScore = analystScore;
-
-                // Update AI Score (Average of 3 scores)
+                // 5. Update Application using findOneAndUpdate to avoid VersionError
+                // Re-calculate AI Score logic here or just update the fields
                 const finalAiScore = Math.round(((app.skillScore || 0) + (app.evidenceScore || 0) + analystScore) / 30 * 100);
-                app.aiScore = finalAiScore;
-                app.aiReasoning = `Analysis Complete. Skills: ${app.skillScore}/10, Evidence: ${app.evidenceScore}/10, Research: ${analystScore}/10.`;
+                const aiReasoning = `Analysis Complete. Skills: ${app.skillScore}/10, Evidence: ${app.evidenceScore}/10, Research: ${analystScore}/10.`;
 
-                await app.save();
+                await Application.findByIdAndUpdate(app._id, {
+                    researchStatus: 'completed',
+                    researchResults: results,
+                    analystScore: analystScore,
+                    aiScore: finalAiScore,
+                    aiReasoning: aiReasoning
+                });
                 console.log(`[Research Worker] Saved results for ${app._id}`);
 
                 // End Log

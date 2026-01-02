@@ -204,7 +204,7 @@ export default async function MonitoringPage() {
                     </div>
                     <div className="aspect-[16/9] w-full bg-gray-900">
                         <iframe
-                            src={`${process.env.NEXT_PUBLIC_GRAFANA_URL}?orgId=1&refresh=5s&theme=light&kiosk`}
+                            src={`${process.env.NEXT_PUBLIC_GRAFANA_URL}/d/mcp-performance-001/ai-agent-performance?orgId=1&refresh=5s&theme=light&kiosk`}
                             width="100%"
                             height="100%"
                             frameBorder="0"
