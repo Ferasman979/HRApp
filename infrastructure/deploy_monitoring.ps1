@@ -6,13 +6,19 @@ $ACR_NAME = "hrappacrferas999"
 Write-Host "Logging into ACR..."
 az acr login --name $ACR_NAME
 
-# 1. Get URLs of existing services
-Write-Host "Fetching service URLs..."
-$FRONTEND_URL = $(az containerapp show --name hr-app-frontend --resource-group $RG_NAME --query properties.configuration.ingress.fqdn -o tsv)
-$PROCESSOR_URL = $(az containerapp show --name hr-mcp-processor --resource-group $RG_NAME --query properties.configuration.ingress.fqdn -o tsv)
-$RESEARCHER_URL = $(az containerapp show --name hr-mcp-researcher --resource-group $RG_NAME --query properties.configuration.ingress.fqdn -o tsv)
+# 1. Get URLs of existing services (PREDICTED to avoid circular dependency)
+Write-Host "Fetching service URLs (Predicting based on Env Domain)..."
 
-if (-not $FRONTEND_URL) { Write-Error "Could not find hr-app-frontend URL"; exit 1 }
+# Get Environment Default Domain
+$ACA_DOMAIN = az containerapp env show --name $ENV_NAME --resource-group $RG_NAME --query properties.defaultDomain -o tsv
+
+if (-not $ACA_DOMAIN) { Write-Error "Could not find Container App Environment Domain"; exit 1 }
+
+$FRONTEND_URL = "hr-app-frontend.$ACA_DOMAIN"
+$PROCESSOR_URL = "hr-mcp-processor.$ACA_DOMAIN"
+$RESEARCHER_URL = "hr-mcp-researcher.$ACA_DOMAIN"
+
+Write-Host "Environment Domain: $ACA_DOMAIN"
 Write-Host "Frontend: $FRONTEND_URL"
 Write-Host "Processor: $PROCESSOR_URL"
 Write-Host "Researcher: $RESEARCHER_URL"

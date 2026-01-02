@@ -2,7 +2,7 @@ name: Build and Deploy to ACA
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "dev" ]
   workflow_dispatch:
 
 permissions:
@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 env:
-  ACR_NAME: hrappacrferas999  # Matches setup_aca.ps1
-  RG_NAME: hr-app-rg
+  ACR_NAME: hrappdemoredeploy  # Updated for Demo
+  RG_NAME: hr-app-rg-demo      # Updated for Demo
 
 jobs:
   build-and-deploy:

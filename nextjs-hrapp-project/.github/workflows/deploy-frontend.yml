@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 env:
-  ACR_NAME: hrappacrferas999
-  RG_NAME: hr-app-rg
+  ACR_NAME: hrappdemoredeploy
+  RG_NAME: hr-app-rg-demo
 
 jobs:
   build-and-deploy:

@@ -66,19 +66,49 @@ export function startMetricsServer(port: number = 9090) {
         // Start Polling DB Metrics (every 30s)
         setInterval(async () => {
             try {
+                // 1. Real DB Stats
                 const stats = await Application.aggregate([
                     { $group: { _id: "$processingStatus", count: { $sum: 1 } } }
                 ]);
 
-                // Reset to 0 first (optional, but safe)
-                // Actually, just update what we find.
+                // Reset gauge before setting to ensure we don't keep stale tags (basic approach)
+                register.getSingleMetric('db_applications_total')?.reset();
+
                 stats.forEach((s: any) => {
                     const status = s._id || 'unknown';
                     dbAppCount.set({ status }, s.count);
                 });
+
+                // 2. Dummy Simulation (Fake Activity for Demo)
+                simulateAgentActivity();
+
             } catch (e) {
                 console.error("[Metrics] Failed to poll DB stats:", e);
             }
-        }, 30000);
+        }, 15000); // Increased frequency for demo purposes (15s)
     });
+}
+
+function simulateAgentActivity() {
+    // A. Simulate Token Usage
+    // Random input/output tokens for 'processor' and 'researcher'
+    const agents = ['processor', 'researcher'];
+    const models = ['llama-3.3-70b', 'llama-3.1-8b'];
+
+    agents.forEach(agent => {
+        // Input tokens
+        llmTokens.inc({ type: 'input', model: models[0], agent }, Math.floor(Math.random() * 500));
+        // Output tokens
+        llmTokens.inc({ type: 'output', model: models[0], agent }, Math.floor(Math.random() * 200));
+    });
+
+    // B. Simulate Job Completions & Duration
+    if (Math.random() > 0.3) { // 70% chance to record a "job"
+        const agent = agents[Math.floor(Math.random() * agents.length)];
+        const status = Math.random() > 0.9 ? 'failure' : 'success'; // 10% failure rate
+        const duration = Math.random() * 60 + 5; // 5s to 65s
+
+        jobCount.inc({ agent, status });
+        jobDuration.observe({ agent, status }, duration);
+    }
 }
