@@ -3,6 +3,8 @@ name: Build and Deploy to ACA
 on:
   push:
     branches: [ "main", "dev" ]
+    paths-ignore:
+      - '**.md'
   workflow_dispatch:
 
 permissions:
@@ -52,6 +54,7 @@ jobs:
           containerAppName: hr-app-frontend
           resourceGroup: ${{ env.RG_NAME }}
           imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/hrapp:${{ github.sha }}
+          environmentVariables: MONGODB_URI=${{ secrets.MONGODB_URI }} GROQ_API_KEY=${{ secrets.GROQ_API_KEY }} LLAMA_PARSE_API_KEY=${{ secrets.LLAMA_PARSE_API_KEY }} NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
 
       # Deploy Processor
       - name: Deploy Processor to Container App
@@ -63,6 +66,7 @@ jobs:
           resourceGroup: ${{ env.RG_NAME }}
           imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/mcp-agent:${{ github.sha }}
           containerCommand: "npm run worker"
+          environmentVariables: MONGODB_URI=${{ secrets.MONGODB_URI }} GROQ_API_KEY=${{ secrets.GROQ_API_KEY }} LLAMA_PARSE_API_KEY=${{ secrets.LLAMA_PARSE_API_KEY }}
 
       # Deploy Researcher
       - name: Deploy Researcher to Container App
@@ -74,3 +78,4 @@ jobs:
           resourceGroup: ${{ env.RG_NAME }}
           imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/mcp-agent:${{ github.sha }}
           containerCommand: "npm run research"
+          environmentVariables: MONGODB_URI=${{ secrets.MONGODB_URI }} GROQ_API_KEY=${{ secrets.GROQ_API_KEY }} LLAMA_PARSE_API_KEY=${{ secrets.LLAMA_PARSE_API_KEY }}

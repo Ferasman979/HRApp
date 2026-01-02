@@ -21,7 +21,6 @@ const UserSchema = new mongoose.Schema({
 });
 
 // Middleware to hash password BEFORE saving the user
-// Middleware to hash password BEFORE saving the user
 UserSchema.pre('save', async function () {
     // Only hash the password if it has been modified (or is new)
     if (!this.isModified('password')) {

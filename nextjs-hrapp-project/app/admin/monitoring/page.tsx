@@ -185,34 +185,6 @@ export default async function MonitoringPage() {
                 </div>
             </div>
 
-            {/* Grafana Embed (Only if configured) */}
-            {process.env.NEXT_PUBLIC_GRAFANA_URL && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                            <Activity className="w-4 h-4 text-orange-500" />
-                            <h3 className="font-semibold text-gray-900">Advanced Grafana Analytics</h3>
-                        </div>
-                        <a
-                            href={process.env.NEXT_PUBLIC_GRAFANA_URL}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                            Open Full Dashboard ↗
-                        </a>
-                    </div>
-                    <div className="aspect-[16/9] w-full bg-gray-900">
-                        <iframe
-                            src={`${process.env.NEXT_PUBLIC_GRAFANA_URL}/d/mcp-performance-001/ai-agent-performance?orgId=1&refresh=5s&theme=light&kiosk`}
-                            width="100%"
-                            height="100%"
-                            frameBorder="0"
-                            className="block"
-                        ></iframe>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

@@ -1,7 +1,7 @@
 
 FROM node:20-slim
 
-# Install dependencies for Puppeteer
+# Install dependencies for Puppeteer (Split to prevent timeouts)
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     fonts-liberation \
@@ -31,7 +31,9 @@ RUN apt-get update && apt-get install -y \
     libxdamage1 \
     libxext6 \
     libxfixes3 \
-    libxi6 \
+    libxi6
+
+RUN apt-get install -y \
     libxrandr2 \
     libxrender1 \
     libxss1 \
