@@ -35,7 +35,7 @@ jobs:
         with:
           context: ./nextjs-hrapp-project
           push: true
-          tags: ${{ env.ACR_NAME }}.azurecr.io/hrapp:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/hrapp:latest
+          tags: ${{ env.ACR_NAME }}.azurecr.io/hr-app-frontend:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/hr-app-frontend:latest
 
       # Build MCP Agent
       - name: Build and Push MCP Agent
@@ -43,7 +43,31 @@ jobs:
         with:
           context: ./hr-agent-mcp
           push: true
-          tags: ${{ env.ACR_NAME }}.azurecr.io/mcp-agent:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/mcp-agent:latest
+          tags: ${{ env.ACR_NAME }}.azurecr.io/hr-agent-mcp:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/hr-agent-mcp:latest
+
+      # Build OTel Collector (Custom)
+      - name: Build and Push OTel Collector
+        uses: docker/build-push-action@v4
+        with:
+          context: ./monitoring/otel
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/otel-collector-custom:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/otel-collector-custom:latest
+
+      # Build Grafana (Custom)
+      - name: Build and Push Grafana
+        uses: docker/build-push-action@v4
+        with:
+          context: ./monitoring/grafana
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/grafana-custom:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/grafana-custom:latest
+
+      # Build Tempo (Custom)
+      - name: Build and Push Tempo
+        uses: docker/build-push-action@v4
+        with:
+          context: ./monitoring/tempo
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/tempo-custom:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/tempo-custom:latest
 
       # Build OTel Collector (Custom)
       - name: Build and Push OTel Collector
@@ -75,7 +99,7 @@ jobs:
           az containerapp update \
             --name hr-app-frontend \
             --resource-group ${{ env.RG_NAME }} \
-            --image ${{ env.ACR_NAME }}.azurecr.io/hrapp:${{ github.sha }}
+            --image ${{ env.ACR_NAME }}.azurecr.io/hr-app-frontend:${{ github.sha }}
 
       # Deploy Processor (Update Image Only)
       - name: Deploy Processor Agent
@@ -83,7 +107,7 @@ jobs:
           az containerapp update \
             --name hr-mcp-processor \
             --resource-group ${{ env.RG_NAME }} \
-            --image ${{ env.ACR_NAME }}.azurecr.io/mcp-agent:${{ github.sha }}
+            --image ${{ env.ACR_NAME }}.azurecr.io/hr-agent-mcp:${{ github.sha }}
 
       # Deploy Researcher (Update Image Only)
       - name: Deploy Researcher Agent
@@ -91,7 +115,7 @@ jobs:
           az containerapp update \
             --name hr-mcp-researcher \
             --resource-group ${{ env.RG_NAME }} \
-            --image ${{ env.ACR_NAME }}.azurecr.io/mcp-agent:${{ github.sha }}
+            --image ${{ env.ACR_NAME }}.azurecr.io/hr-agent-mcp:${{ github.sha }}
 
       # Deploy OTel Collector (Update Image Only)
       - name: Deploy OTel Collector

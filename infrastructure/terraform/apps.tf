@@ -9,8 +9,8 @@ resource "azurerm_container_app" "frontend" {
     container {
       name   = "frontend"
       image  = "${azurerm_container_registry.acr.login_server}/hr-app-frontend:latest"
-      cpu    = 0.5
-      memory = "1.0Gi"
+      cpu    = 0.25
+      memory = "0.5Gi"
 
       env {
         name  = "MONGODB_URI"
@@ -23,6 +23,10 @@ resource "azurerm_container_app" "frontend" {
       env {
         name  = "NEXT_PUBLIC_GRAFANA_URL"
         value = "https://${azurerm_container_app.grafana.ingress[0].fqdn}"
+      }
+      env {
+        name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
+        value = "http://hr-app-collector:4317"
       }
     }
   }
@@ -59,8 +63,13 @@ resource "azurerm_container_app" "processor" {
       name    = "processor"
       image   = "${azurerm_container_registry.acr.login_server}/hr-agent-mcp:latest"
       command = ["npm", "run", "worker"]
-      cpu     = 0.5
-      memory  = "1.0Gi"
+      cpu     = 0.25
+      memory  = "0.5Gi"
+
+      env {
+        name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
+        value = "http://hr-app-collector:4317"
+      }
 
       env {
         name  = "MONGODB_URI"
@@ -100,8 +109,13 @@ resource "azurerm_container_app" "researcher" {
       name    = "researcher"
       image   = "${azurerm_container_registry.acr.login_server}/hr-agent-mcp:latest"
       command = ["npm", "run", "research"]
-      cpu     = 0.5
-      memory  = "1.0Gi"
+      cpu     = 0.25
+      memory  = "0.5Gi"
+
+      env {
+        name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
+        value = "http://hr-app-collector:4317"
+      }
 
       env {
         name  = "MONGODB_URI"
@@ -141,8 +155,8 @@ resource "azurerm_container_app" "grafana" {
     container {
       name   = "grafana"
       image  = "${azurerm_container_registry.acr.login_server}/grafana-custom:latest" # Assumes already built
-      cpu    = 0.5
-      memory = "1.0Gi"
+      cpu    = 0.25
+      memory = "0.5Gi"
       
       env {
         name  = "GF_SECURITY_ALLOW_EMBEDDING"
@@ -186,15 +200,14 @@ resource "azurerm_container_app" "tempo" {
     container {
       name   = "tempo"
       image  = "${azurerm_container_registry.acr.login_server}/tempo-custom:latest"
-      cpu    = 0.5
-      memory = "1.0Gi"
+      cpu    = 0.25
+      memory = "0.5Gi"
     }
   }
 
   ingress {
     external_enabled = false # Internal only
-    target_port      = 3200
-    exposed_port     = 4317 # GRPC
+    target_port      = 4317 # Change from 3200 to 4317 to match gRPC OTLP listener
     transport        = "tcp"
     traffic_weight {
       percentage = 100
@@ -224,8 +237,8 @@ resource "azurerm_container_app" "otel_collector" {
     container {
       name   = "collector"
       image  = "${azurerm_container_registry.acr.login_server}/otel-collector-custom:latest"
-      cpu    = 0.5
-      memory = "1.0Gi"
+      cpu    = 0.25
+      memory = "0.5Gi"
     }
   }
 
