@@ -185,13 +185,9 @@ resource "azurerm_container_app" "tempo" {
   template {
     container {
       name   = "tempo"
-      image  = "grafana/tempo:latest"
+      image  = "${azurerm_container_registry.acr.login_server}/tempo-custom:latest"
       cpu    = 0.5
       memory = "1.0Gi"
-      
-      # Tempo config is usually complex, but we'll try default args for demo
-      # -config.file=/etc/tempo/tempo.yaml
-      command = ["/tempo", "-config.file=/etc/tempo.yaml"] 
     }
   }
 

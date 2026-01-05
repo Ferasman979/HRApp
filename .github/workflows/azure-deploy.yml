@@ -61,6 +61,14 @@ jobs:
           push: true
           tags: ${{ env.ACR_NAME }}.azurecr.io/grafana-custom:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/grafana-custom:latest
 
+      # Build Tempo (Custom)
+      - name: Build and Push Tempo
+        uses: docker/build-push-action@v4
+        with:
+          context: ./monitoring/tempo
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/tempo-custom:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/tempo-custom:latest
+
       # Deploy Frontend (Update Image Only)
       - name: Deploy Frontend
         run: |
@@ -100,3 +108,11 @@ jobs:
             --name hr-app-grafana \
             --resource-group ${{ env.RG_NAME }} \
             --image ${{ env.ACR_NAME }}.azurecr.io/grafana-custom:${{ github.sha }}
+
+      # Deploy Tempo (Update Image Only)
+      - name: Deploy Tempo
+        run: |
+          az containerapp update \
+            --name hr-app-tempo \
+            --resource-group ${{ env.RG_NAME }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/tempo-custom:${{ github.sha }}
