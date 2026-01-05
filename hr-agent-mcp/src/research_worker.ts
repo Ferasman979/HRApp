@@ -1,3 +1,4 @@
+import './tracing'; // Must be first
 import connectDB from './config/db';
 import AgentLog from './models/AgentLog';
 import Application from './models/Application';

@@ -2,3 +2,9 @@ easy-apply-site/
 .DS_Store
 *.log
 .vscode/
+
+# Terraform Secrets
+*.tfvars
+*.tfstate
+*.tfstate.backup
+.terraform/

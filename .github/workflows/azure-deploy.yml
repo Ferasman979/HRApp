@@ -12,8 +12,8 @@ permissions:
   contents: read
 
 env:
-  ACR_NAME: hrappdemoredeploy  # Updated for Demo
-  RG_NAME: hr-app-rg-demo      # Updated for Demo
+  ACR_NAME: hrappterraformferas  # Matches Terraform
+  RG_NAME: hr-app-rg-terraform   # Matches Terraform
 
 jobs:
   build-and-deploy:
@@ -45,37 +45,58 @@ jobs:
           push: true
           tags: ${{ env.ACR_NAME }}.azurecr.io/mcp-agent:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/mcp-agent:latest
 
-      # Deploy Frontend
-      - name: Deploy Frontend to Container App
-        uses: azure/container-apps-deploy-action@v1
+      # Build OTel Collector (Custom)
+      - name: Build and Push OTel Collector
+        uses: docker/build-push-action@v4
         with:
-          appSourcePath: ${{ github.workspace }}/nextjs-hrapp-project
-          acrName: ${{ env.ACR_NAME }}
-          containerAppName: hr-app-frontend
-          resourceGroup: ${{ env.RG_NAME }}
-          imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/hrapp:${{ github.sha }}
-          environmentVariables: MONGODB_URI=${{ secrets.MONGODB_URI }} GROQ_API_KEY=${{ secrets.GROQ_API_KEY }} LLAMA_PARSE_API_KEY=${{ secrets.LLAMA_PARSE_API_KEY }} NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
+          context: ./monitoring/otel
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/otel-collector-custom:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/otel-collector-custom:latest
 
-      # Deploy Processor
-      - name: Deploy Processor to Container App
-        uses: azure/container-apps-deploy-action@v1
+      # Build Grafana (Custom)
+      - name: Build and Push Grafana
+        uses: docker/build-push-action@v4
         with:
-          appSourcePath: ${{ github.workspace }}/hr-agent-mcp
-          acrName: ${{ env.ACR_NAME }}
-          containerAppName: hr-mcp-processor
-          resourceGroup: ${{ env.RG_NAME }}
-          imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/mcp-agent:${{ github.sha }}
-          containerCommand: "npm run worker"
-          environmentVariables: MONGODB_URI=${{ secrets.MONGODB_URI }} GROQ_API_KEY=${{ secrets.GROQ_API_KEY }} LLAMA_PARSE_API_KEY=${{ secrets.LLAMA_PARSE_API_KEY }}
+          context: ./monitoring/grafana
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/grafana-custom:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/grafana-custom:latest
 
-      # Deploy Researcher
-      - name: Deploy Researcher to Container App
-        uses: azure/container-apps-deploy-action@v1
-        with:
-          appSourcePath: ${{ github.workspace }}/hr-agent-mcp
-          acrName: ${{ env.ACR_NAME }}
-          containerAppName: hr-mcp-researcher
-          resourceGroup: ${{ env.RG_NAME }}
-          imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/mcp-agent:${{ github.sha }}
-          containerCommand: "npm run research"
-          environmentVariables: MONGODB_URI=${{ secrets.MONGODB_URI }} GROQ_API_KEY=${{ secrets.GROQ_API_KEY }} LLAMA_PARSE_API_KEY=${{ secrets.LLAMA_PARSE_API_KEY }}
+      # Deploy Frontend (Update Image Only)
+      - name: Deploy Frontend
+        run: |
+          az containerapp update \
+            --name hr-app-frontend \
+            --resource-group ${{ env.RG_NAME }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/hrapp:${{ github.sha }}
+
+      # Deploy Processor (Update Image Only)
+      - name: Deploy Processor Agent
+        run: |
+          az containerapp update \
+            --name hr-mcp-processor \
+            --resource-group ${{ env.RG_NAME }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/mcp-agent:${{ github.sha }}
+
+      # Deploy Researcher (Update Image Only)
+      - name: Deploy Researcher Agent
+        run: |
+          az containerapp update \
+            --name hr-mcp-researcher \
+            --resource-group ${{ env.RG_NAME }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/mcp-agent:${{ github.sha }}
+
+      # Deploy OTel Collector (Update Image Only)
+      - name: Deploy OTel Collector
+        run: |
+          az containerapp update \
+            --name hr-app-collector \
+            --resource-group ${{ env.RG_NAME }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/otel-collector-custom:${{ github.sha }}
+
+      # Deploy Grafana (Update Image Only)
+      - name: Deploy Grafana
+        run: |
+          az containerapp update \
+            --name hr-app-grafana \
+            --resource-group ${{ env.RG_NAME }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/grafana-custom:${{ github.sha }}

@@ -10,6 +10,11 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.952.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.67.3",
+    "@opentelemetry/exporter-trace-otlp-grpc": "^0.208.0",
+    "@opentelemetry/resources": "^2.2.0",
+    "@opentelemetry/sdk-node": "^0.208.0",
+    "@opentelemetry/semantic-conventions": "^1.38.0",
     "@types/nodemailer": "^7.0.4",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",

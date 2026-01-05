@@ -5,8 +5,32 @@ datasources:
     type: prometheus
     access: proxy
     orgId: 1
-    url: http://hr-app-prometheus
+    url: http://hr-app-prometheus:9090
     isDefault: true
     version: 1
     editable: true
+    jsonData:
+      # Link metrics to traces (Exemplars)
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: tempo
+
+  - name: Tempo
+    type: tempo
+    access: proxy
+    orgId: 1
+    url: http://hr-app-tempo:3200
+    basicAuth: false
+    isDefault: false
+    version: 1
     editable: true
+    apiVersion: 1
+    uid: tempo
+    jsonData:
+      nodeGraph:
+        enabled: true
+      search:
+        hide: false
+      traceQuery:
+        timeShiftEnabled: true
+        spanStartTimeShift: '1h'
