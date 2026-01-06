@@ -2,7 +2,7 @@ name: Build and Deploy to ACA
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches: [ "dev" ]
     paths-ignore:
       - '**.md'
   workflow_dispatch:
