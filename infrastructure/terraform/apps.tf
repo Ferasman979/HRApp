@@ -109,8 +109,8 @@ resource "azurerm_container_app" "researcher" {
       name    = "researcher"
       image   = "${azurerm_container_registry.acr.login_server}/hr-agent-mcp:latest"
       command = ["npm", "run", "research"]
-      cpu     = 0.25
-      memory  = "0.5Gi"
+      cpu     = 0.5
+      memory  = "1.0Gi"
 
       env {
         name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
