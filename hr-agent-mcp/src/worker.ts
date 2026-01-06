@@ -1,4 +1,3 @@
-```
 import './tracing'; // Must be first
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
@@ -34,13 +33,13 @@ async function startWorker() {
         changeStream.on('change', async (change) => {
             if (change.operationType === 'insert') {
                 const docId = change.documentKey._id;
-                console.log(`\n[Worker] New Application Detected: ${ docId } `);
+                console.log(`\n[Worker] New Application Detected: ${docId}`);
 
                 try {
                     // Trigger the processing pipeline
                     await processApplication(docId.toString());
                 } catch (err) {
-                    console.error(`[Worker] Failed to process application ${ docId }: `, err);
+                    console.error(`[Worker] Failed to process application ${docId}:`, err);
                 }
             }
         });
