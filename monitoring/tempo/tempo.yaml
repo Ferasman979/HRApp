@@ -30,4 +30,4 @@ storage:
     wal:
       path: /var/tempo/wal             # Write-ahead log path
 
-search_enabled: true
+
