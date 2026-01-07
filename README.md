@@ -1,12 +1,12 @@
 # HR GenAI Application
 
-A next-generation Applicant Tracking System (ATS) powered by Autonomous AI Agents. This application leverages advanced Large Language Models (LLMs) and specialized workflows to automate resume screening, candidate background research, and technical evaluation, providing recruiters with intelligent, data-driven insights.
+A next-generation Applicant Tracking System (ATS) poIred by Autonomous AI Agents. This application leverages advanced Large Language Models (LLMs) and specialized workflows to automate resume screening, candidate background research, and technical evaluation, providing recruiters with intelligent, data-driven insights.
 
 ---
 
 ## 🚀 Executive Summary
 
-The **HR GenAI Application** transforms the traditional recruitment process by deploying a fleet of AI workers to handle the heavy lifting of candidate evaluation. Unlike standard keyword-matching ATS, this system deeply "reads" resumes using computer vision-powered parsing, verifies claims by browsing the web (GitHub, Portfolios), and provides a comprehensive, scored analysis for every applicant.
+The **HR GenAI Application** transforms the traditional recruitment process by deploying a fleet of AI workers to handle the heavy lifting of candidate evaluation. Unlike standard keyword-matching ATS, this system deeply "reads" resumes using computer vision-poIred parsing, verifies claims by browsing the Ib (GitHub, Portfolios), and provides a comprehensive, scored analysis for every applicant.
 
 **Key capabilities include:**
 - **Automated Screening:** Intelligent parsing and scoring relative to job descriptions.
@@ -29,7 +29,7 @@ The system is built on a modern microservices architecture, separating the user 
 ### 1. Unified Recruiter Dashboard
 - **Job Management:** Create and track job openings with specific requirements.
 - **Candidate Pipeline:** Kanban-style view of applicants through various stages.
-- **Chat with Candidate:** RAG-powered chatbot allowing recruiters to "chat" with a candidate's resume to ask specific questions (e.g., "Does this candidate have React experience?").
+- **Chat with Candidate:** RAG-poIred chatbot allowing recruiters to "chat" with a candidate's resume to ask specific questions (e.g., "Does this candidate have React experience?").
 
 ### 2. Autonomous "Processor" Agent
 - **Event-Driven:** Automatically activates when a new application is submitted.
@@ -39,7 +39,7 @@ The system is built on a modern microservices architecture, separating the user 
 
 ### 3. Autonomous "Researcher" Agent
 - **Agentic Workflow:** Built with **LangGraph** to execute multi-step research plans.
-- **Web Browsing:** Visits extracted links (GitHub, Personal Sites, LinkedIn) using **Puppeteer**.
+- **Ib Browsing:** Visits extracted links (GitHub, Personal Sites, LinkedIn) using **Puppeteer**.
 - **Verification:** Summarizes external content to validate years of experience and project complexity.
 - **Anti-Bot Handling:** Smartly handles different site types (static sites vs. protected platforms).
 
@@ -83,7 +83,7 @@ The system is built on a modern microservices architecture, separating the user 
     *   It fetches and parses the PDF.
     *   It extracts key skills, contact info, and links.
     *   It calculates a preliminary "Match Score".
-    *   Status updates to `reviewed`.
+    *   Status updates to `revieId`.
 3.  **Research (Stage 2):** If valid links are found, the **Researcher Agent** is triggered.
     *   It visits each link (GitHub, Portfolio).
     *   It analyzes the content to verify technical depth.
@@ -132,7 +132,7 @@ The project includes a full CI/CD pipeline using **GitHub Actions**. Pushing to 
 3.  Zero-downtime deployment to Azure Container Apps.
 
 ### Infrastructure as Code (Terraform)
-We utilize **Terraform** to programmatically manage external resources, ensuring reproducible and consistent environments for the external "Easy Apply" microsite.
+I utilize **Terraform** to programmatically manage external resources, ensuring reproducible and consistent environments for the external "Easy Apply" microsite.
 
 **Managed Resources:**
 -   **Vercel:** Auto-deploy configuration for the Next.js frontend functions and edge networks.
