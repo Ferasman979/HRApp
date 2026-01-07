@@ -45,29 +45,6 @@ jobs:
           push: true
           tags: ${{ env.ACR_NAME }}.azurecr.io/hr-agent-mcp:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/hr-agent-mcp:latest
 
-      # Build OTel Collector (Custom)
-      - name: Build and Push OTel Collector
-        uses: docker/build-push-action@v4
-        with:
-          context: ./monitoring/otel
-          push: true
-          tags: ${{ env.ACR_NAME }}.azurecr.io/otel-collector-custom:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/otel-collector-custom:latest
-
-      # Build Grafana (Custom)
-      - name: Build and Push Grafana
-        uses: docker/build-push-action@v4
-        with:
-          context: ./monitoring/grafana
-          push: true
-          tags: ${{ env.ACR_NAME }}.azurecr.io/grafana-custom:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/grafana-custom:latest
-
-      # Build Tempo (Custom)
-      - name: Build and Push Tempo
-        uses: docker/build-push-action@v4
-        with:
-          context: ./monitoring/tempo
-          push: true
-          tags: ${{ env.ACR_NAME }}.azurecr.io/tempo-custom:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/tempo-custom:latest
 
 
       # Build Grafana (Custom)
@@ -85,6 +62,9 @@ jobs:
           context: ./monitoring/tempo
           push: true
           tags: ${{ env.ACR_NAME }}.azurecr.io/tempo-custom:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/tempo-custom:latest
+
+
+
 
       # Deploy Frontend (Update Image Only)
       - name: Deploy Frontend
