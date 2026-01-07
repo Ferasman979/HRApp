@@ -86,6 +86,16 @@ resource "azurerm_container_app" "processor" {
     }
   }
   
+  ingress {
+    external_enabled = false
+    target_port      = 9090
+    transport        = "auto"
+    traffic_weight {
+      percentage = 100
+      latest_revision = true
+    }
+  }
+
   registry {
     server               = azurerm_container_registry.acr.login_server
     username             = azurerm_container_registry.acr.admin_username
