@@ -47,6 +47,14 @@ jobs:
 
 
 
+      # Build Prometheus (Custom)
+      - name: Build and Push Prometheus
+        uses: docker/build-push-action@v4
+        with:
+          context: ./monitoring/prometheus
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/prometheus-custom:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/prometheus-custom:latest
+
       # Build Grafana (Custom)
       - name: Build and Push Grafana
         uses: docker/build-push-action@v4
@@ -90,6 +98,14 @@ jobs:
             --resource-group ${{ env.RG_NAME }} \
             --image ${{ env.ACR_NAME }}.azurecr.io/hr-agent-mcp:${{ github.sha }}
 
+
+      # Deploy Prometheus (Update Image Only)
+      - name: Deploy Prometheus
+        run: |
+          az containerapp update \
+            --name hr-app-prometheus \
+            --resource-group ${{ env.RG_NAME }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/prometheus-custom:${{ github.sha }}
 
       # Deploy Grafana (Update Image Only)
       - name: Deploy Grafana

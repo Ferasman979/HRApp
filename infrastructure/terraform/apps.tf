@@ -143,6 +143,43 @@ resource "azurerm_container_app" "researcher" {
   }
 }
 
+# 3.5 Prometheus (Metrics Backend)
+resource "azurerm_container_app" "prometheus" {
+  name                         = "hr-app-prometheus"
+  container_app_environment_id = azurerm_container_app_environment.env.id
+  resource_group_name          = azurerm_resource_group.rg.name
+  revision_mode                = "Single"
+
+  template {
+    container {
+      name   = "prometheus"
+      image  = "${azurerm_container_registry.acr.login_server}/prometheus-custom:latest"
+      cpu    = 0.5
+      memory = "1.0Gi"
+    }
+  }
+
+  ingress {
+    external_enabled = false
+    target_port      = 9090
+    transport        = "tcp"
+    traffic_weight {
+      percentage = 100
+      latest_revision = true
+    }
+  }
+
+  registry {
+    server               = azurerm_container_registry.acr.login_server
+    username             = azurerm_container_registry.acr.admin_username
+    password_secret_name = "acr-password"
+  }
+  secret {
+    name  = "acr-password"
+    value = azurerm_container_registry.acr.admin_password
+  }
+}
+
 # 4. Grafana (Simplified for Terraform)
 # Note: Real-world Grafana usually needs volume mounts for persistence.
 resource "azurerm_container_app" "grafana" {
