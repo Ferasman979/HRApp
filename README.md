@@ -43,9 +43,11 @@ The system is built on a modern microservices architecture, separating the user 
 - **Verification:** Summarizes external content to validate years of experience and project complexity.
 - **Anti-Bot Handling:** Smartly handles different site types (static sites vs. protected platforms).
 
-### 4. Mission Control Monitoring
-- **Real-Time Ops:** View live logs of agent activities (tokens used, duration, success/failure).
-- **Performance Metrics:** Track average processing time, total applications processed, and error rates directly from the admin interface.
+### 4. Observability & Monitoring
+- **Centralized Dashboard:** **Grafana** provides a unified view of system health.
+- **Distributed Tracing:** **Tempo** visualizes the full request lifecycle from Frontend → DB → Agent.
+- **Metrics Collection:** **Prometheus** tracks real-time performance data (e.g., parsing duration, success rates).
+- **Telemetry:** **OpenTelemetry** instrumentation across all microservices.
 
 ---
 
@@ -70,7 +72,7 @@ The system is built on a modern microservices architecture, separating the user 
 - **Compute:** Azure Container Apps (Serverless Containers)
 - **Registry:** Azure Container Registry (ACR)
 - **CI/CD:** GitHub Actions (Automated Build & Deploy)
-- **Monitoring:** Custom MongoDB-based Logging & Metrics
+- **Monitoring:** OpenTelemetry, Prometheus, Tempo, Grafana (Hosted on Azure VM)
 
 ---
 
