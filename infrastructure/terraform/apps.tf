@@ -63,7 +63,7 @@ resource "azurerm_container_app" "processor" {
       name    = "processor"
       image   = "${azurerm_container_registry.acr.login_server}/hr-agent-mcp:latest"
       command = ["npm", "run", "worker"]
-      cpu     = 0.25
+      cpu     = 0.5
       memory  = "1.0Gi"
 
       env {
