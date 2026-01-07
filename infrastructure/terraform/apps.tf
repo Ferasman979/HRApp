@@ -64,11 +64,11 @@ resource "azurerm_container_app" "processor" {
       image   = "${azurerm_container_registry.acr.login_server}/hr-agent-mcp:latest"
       command = ["npm", "run", "worker"]
       cpu     = 0.25
-      memory  = "0.5Gi"
+      memory  = "1.0Gi"
 
       env {
         name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
-        value = "http://hr-app-collector:4317"
+        value = "http://hr-app-tempo:4317"
       }
 
       env {
@@ -226,40 +226,4 @@ resource "azurerm_container_app" "tempo" {
   }
 }
 
-# 6. OpenTelemetry Collector (Custom Image)
-resource "azurerm_container_app" "otel_collector" {
-  name                         = "hr-app-collector"
-  container_app_environment_id = azurerm_container_app_environment.env.id
-  resource_group_name          = azurerm_resource_group.rg.name
-  revision_mode                = "Single"
 
-  template {
-    container {
-      name   = "collector"
-      image  = "${azurerm_container_registry.acr.login_server}/otel-collector-custom:latest"
-      cpu    = 0.25
-      memory = "0.5Gi"
-    }
-  }
-
-  ingress {
-    external_enabled = false # Internal only? Or expose for local dev?
-    target_port      = 4317 # GRPC OTLP
-    transport        = "tcp"
-    traffic_weight {
-      percentage = 100
-      latest_revision = true
-    }
-    # Also listens on 4318 HTTP
-  }
-
-  registry {
-    server               = azurerm_container_registry.acr.login_server
-    username             = azurerm_container_registry.acr.admin_username
-    password_secret_name = "acr-password"
-  }
-  secret {
-    name  = "acr-password"
-    value = azurerm_container_registry.acr.admin_password
-  }
-}

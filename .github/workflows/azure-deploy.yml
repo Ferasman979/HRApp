@@ -69,13 +69,6 @@ jobs:
           push: true
           tags: ${{ env.ACR_NAME }}.azurecr.io/tempo-custom:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/tempo-custom:latest
 
-      # Build OTel Collector (Custom)
-      - name: Build and Push OTel Collector
-        uses: docker/build-push-action@v4
-        with:
-          context: ./monitoring/otel
-          push: true
-          tags: ${{ env.ACR_NAME }}.azurecr.io/otel-collector-custom:${{ github.sha }},${{ env.ACR_NAME }}.azurecr.io/otel-collector-custom:latest
 
       # Build Grafana (Custom)
       - name: Build and Push Grafana
@@ -117,13 +110,6 @@ jobs:
             --resource-group ${{ env.RG_NAME }} \
             --image ${{ env.ACR_NAME }}.azurecr.io/hr-agent-mcp:${{ github.sha }}
 
-      # Deploy OTel Collector (Update Image Only)
-      - name: Deploy OTel Collector
-        run: |
-          az containerapp update \
-            --name hr-app-collector \
-            --resource-group ${{ env.RG_NAME }} \
-            --image ${{ env.ACR_NAME }}.azurecr.io/otel-collector-custom:${{ github.sha }}
 
       # Deploy Grafana (Update Image Only)
       - name: Deploy Grafana
