@@ -1,4 +1,4 @@
-# HR GenAI Application
+# HR/ Talent Acquisition GenAI Application
 
 A next-generation Applicant Tracking System (ATS) poIred by Autonomous AI Agents. This application leverages advanced Large Language Models (LLMs) and specialized workflows to automate resume screening, candidate background research, and technical evaluation, providing recruiters with intelligent, data-driven insights.
 
