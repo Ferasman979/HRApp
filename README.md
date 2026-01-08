@@ -1,12 +1,12 @@
 # HR/Talent Acquisition GenAI Application
 
-A next-generation Applicant Tracking System (ATS) poIred by Autonomous AI Agents. This application leverages advanced Large Language Models (LLMs) and specialized workflows to automate resume screening, candidate background research, and technical evaluation, providing recruiters with intelligent, data-driven insights.
+A next-generation Applicant Tracking System (ATS) powered by Autonomous AI Agents. This application leverages advanced Large Language Models (LLMs) and specialized workflows to automate resume screening, candidate background research, and technical evaluation, providing recruiters with intelligent, data-driven insights.
 
 ---
 
 ## Executive Summary
 
-The **HR GenAI Application** transforms the traditional recruitment process by deploying a fleet of AI workers to handle the heavy lifting of candidate evaluation. Unlike standard keyword-matching ATS, this system deeply "reads" resumes using computer vision-poIred parsing, verifies claims by browsing the Ib (GitHub, Portfolios), and provides a comprehensive, scored analysis for every applicant.
+The **HR/TalentAcq GenAI Application** transforms the traditional recruitment process by deploying a fleet of AI workers to handle the heavy lifting of candidate evaluation. Unlike standard keyword-matching ATS, this system deeply "reads" resumes using computer vision-powered parsing, verifies claims by browsing the web (GitHub, Portfolios), and provides a comprehensive, scored analysis for every applicant.
 
 **Key capabilities include:**
 - **Automated Screening:** Intelligent parsing and scoring relative to job descriptions.
