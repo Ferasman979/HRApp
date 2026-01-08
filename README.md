@@ -4,7 +4,7 @@ A next-generation Applicant Tracking System (ATS) poIred by Autonomous AI Agents
 
 ---
 
-## 🚀 Executive Summary
+## Executive Summary
 
 The **HR GenAI Application** transforms the traditional recruitment process by deploying a fleet of AI workers to handle the heavy lifting of candidate evaluation. Unlike standard keyword-matching ATS, this system deeply "reads" resumes using computer vision-poIred parsing, verifies claims by browsing the Ib (GitHub, Portfolios), and provides a comprehensive, scored analysis for every applicant.
 
@@ -16,7 +16,7 @@ The **HR GenAI Application** transforms the traditional recruitment process by d
 
 ---
 
-## 🏗️ High-Level Architecture
+## High-Level Architecture
 
 The system is built on a modern microservices architecture, separating the user interface from the intensive AI processing tasks.
 
@@ -24,7 +24,7 @@ The system is built on a modern microservices architecture, separating the user 
 
 ---
 
-## ✨ Key Features
+##  Key Features
 
 ### 1. Unified Recruiter Dashboard
 - **Job Management:** Create and track job openings with specific requirements.
@@ -76,7 +76,7 @@ The system is built on a modern microservices architecture, separating the user 
 
 ---
 
-## 🔄 Operational Workflow
+##  Operational Workflow
 
 1.  **Submission:** A candidate submits an application via the portal. The resume is stored, and the status is set to `new`.
 2.  **Processing (Stage 1):** The **Processor Agent** detects the new entry via MongoDB Change Streams.
@@ -92,7 +92,7 @@ The system is built on a modern microservices architecture, separating the user 
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 - Node.js v20+
