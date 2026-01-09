@@ -59,3 +59,6 @@ COPY . .
 
 # Default command (can be overridden)
 CMD ["npm", "run", "worker"]
+
+EXPOSE 3000
+
