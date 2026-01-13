@@ -1,156 +1,96 @@
-# HR/Talent Acquisition GenAI Application
+# HR Agent MCP System
 
-A next-generation Applicant Tracking System (ATS) powered by Autonomous AI Agents. This application leverages advanced Large Language Models (LLMs) and specialized workflows to automate resume screening, candidate background research, and technical evaluation, providing recruiters with intelligent, data-driven insights.
+This repository hosts the backend intelligence for the HR Application, built using the **Model Context Protocol (MCP)**.
 
----
+It has been re-architected from a monolith into specialized **Micro-MCP Servers** for performance, scalability, and observability.
 
-## Executive Summary
-
-The **HR/TalentAcq GenAI Application** transforms the traditional recruitment process by deploying a fleet of AI workers to handle the heavy lifting of candidate evaluation. Unlike standard keyword-matching ATS, this system deeply "reads" resumes using computer vision-powered parsing, verifies claims by browsing the web (GitHub, Portfolios), and provides a comprehensive, scored analysis for every applicant.
-
-**Key capabilities include:**
-- **Automated Screening:** Intelligent parsing and scoring relative to job descriptions.
-- **Autonomous Research:** AI agents actively browse and verify candidate links.
-- **Real-Time Monitoring:** Live dashboard tracking agent activities and metrics.
-- **Scalable Architecture:** Microservices-based design deployed on Azure Container Apps.
-
----
-
-## High-Level Architecture
-
-The system is built on a modern microservices architecture, separating the user interface from the intensive AI processing tasks.
-
-![Architecture Diagram](docs/diagram.png)
-
----
-
-##  Key Features
-
-### 1. Unified Recruiter Dashboard
-- **Job Management:** Create and track job openings with specific requirements.
-- **Candidate Pipeline:** Kanban-style view of applicants through various stages.
-- **Chat with Candidate:** RAG-poIred chatbot allowing recruiters to "chat" with a candidate's resume to ask specific questions (e.g., "Does this candidate have React experience?").
-
-### 2. Autonomous "Processor" Agent
-- **Event-Driven:** Automatically activates when a new application is submitted.
-- **Advanced Parsing:** Uses **LlamaParse** to extract structured data from complex PDF layouts.
-- **Contextual Analysis:** Performs Retrieval-Augmented Generation (RAG) to compare skills against the specific job description.
-- **Scoring Engine:** Generates a preliminary suitability score (0-100) based on skills and evidence.
-
-### 3. Autonomous "Researcher" Agent
-- **Agentic Workflow:** Built with **LangGraph** to execute multi-step research plans.
-- **Ib Browsing:** Visits extracted links (GitHub, Personal Sites, LinkedIn) using **Puppeteer**.
-- **Verification:** Summarizes external content to validate years of experience and project complexity.
-- **Anti-Bot Handling:** Smartly handles different site types (static sites vs. protected platforms).
-
-### 4. Observability & Monitoring
-- **Centralized Dashboard:** **Grafana** provides a unified view of system health.
-- **Distributed Tracing:** **Tempo** visualizes the full request lifecycle from Frontend → DB → Agent.
-- **Metrics Collection:** **Prometheus** tracks real-time performance data (e.g., parsing duration, success rates).
-- **Telemetry:** **OpenTelemetry** instrumentation across all microservices.
-
----
-
-## 🛠️ Technology Stack
-
-### Frontend Application
-- **Framework:** Next.js 16 (App Router)
-- **UI Component:** React 19, Tailwind CSS, Lucide React
-- **Data Visualization:** Recharts
-- **Authentication:** NextAuth.js
-
-### AI & Backend Services
-- **Runtime:** Node.js (TypeScript)
-- **AI Orchestration:** LangChain, LangGraph
-- **LLM Provider:** Groq (Llama 3.3 70B Versatile)
-- **Document Parsing:** LlamaParse (LlamaIndex)
-- **Browser Automation:** Puppeteer
-- **Database:** MongoDB (Mongoose)
-
-### Infrastructure & DevOps
-- **Cloud Provider:** Microsoft Azure
-- **Compute:** Azure Container Apps (Serverless Containers)
-- **Registry:** Azure Container Registry (ACR)
-- **CI/CD:** GitHub Actions (Automated Build & Deploy)
-- **Monitoring:** OpenTelemetry, Prometheus, Tempo, Grafana (Hosted on Azure VM)
-
----
-
-##  Operational Workflow
-
-1.  **Submission:** A candidate submits an application via the portal. The resume is stored, and the status is set to `new`.
-2.  **Processing (Stage 1):** The **Processor Agent** detects the new entry via MongoDB Change Streams.
-    *   It fetches and parses the PDF.
-    *   It extracts key skills, contact info, and links.
-    *   It calculates a preliminary "Match Score".
-    *   Status updates to `revieId`.
-3.  **Research (Stage 2):** If valid links are found, the **Researcher Agent** is triggered.
-    *   It visits each link (GitHub, Portfolio).
-    *   It analyzes the content to verify technical depth.
-    *   It appends a "Research Summary" to the candidate profile.
-4.  **Decision:** The recruiter reviews the consolidated profile, including the AI reasoning and research notes, to make an informed decision (Interview/Reject).
-
----
-
-##  Getting Started
-
-### Prerequisites
-- Node.js v20+
-- MongoDB Atlas Instance
-- API Keys: Groq, LlamaParse
-
-### Local Development
-
-1.  **Clone the Repository**
-    ```bash
-    git clone https://github.com/Ferasman979/HRApp.git
-    cd HRApp
-    ```
-
-2.  **Setup Frontend**
-    ```bash
-    cd nextjs-hrapp-project
-    npm install
-    cp .env.example .env.local # Configure keys
-    npm run dev
-    ```
-
-3.  **Setup AI Agents**
-    ```bash
-    cd ../hr-agent-mcp
-    npm install
-    cp .env.example .env # Configure keys
-    npm run worker    # Starts the Processor
-    # In a separate terminal
-    npm run research  # Starts the Researcher
-    ```
-
-### Deployment
-The project includes a full CI/CD pipeline using **GitHub Actions**. Pushing to the `main` or `dev` branch triggers:
-1.  Docker build of Frontend and Agent images.
-2.  Push to Azure Container Registry.
-3.  Zero-downtime deployment to Azure Container Apps.
-
-### Infrastructure as Code (Terraform)
-I utilize **Terraform** to programmatically manage external resources, ensuring reproducible and consistent environments for the external "Easy Apply" microsite.
-
-**Managed Resources:**
--   **Vercel:** Auto-deploy configuration for the Next.js frontend functions and edge networks.
--   **MongoDB Atlas:** Provisioning of serverless database clusters, users, and network access lists.
-
-**Usage:**
-```bash
-cd easy-apply-site/terraform
-# Initialize providers
-terraform init
-
-# Preview changes
-terraform plan -var-file="prod.tfvars"
-
-# Apply infrastructure changes
-terraform apply -var-file="prod.tfvars"
+## 🏗 System Architecture
+```mermaid
+graph TD
+    User((User)) -->|Uploads Resume| API[Next.js API]
+    API -->|Insert| DB[(MongoDB)]
+    
+    subgraph "Micro-MCP System"
+        P[Processor Agent] -->|Watch| DB
+        P -->|Parse & Extract| LlamaParse
+        P -->|Vectorize| Embed[Local Embeddings]
+        
+        R[Researcher Agent] -->|Poll| DB
+        R -->|Fetch| Web[Internet / Puppeteer]
+        R -->|Reason| LangGraph
+        R -->|Vectorize| Embed
+    end
+    
+    subgraph "Observability"
+        Prom[Prometheus] -->|Scrape| P
+        Prom -->|Scrape| R
+        Tempo[Tempo] -->|Trace| P
+        Tempo -->|Trace| R
+        Grafana -->|Visualize| Prom
+        Grafana -->|Visualize| Tempo
+    end
 ```
 
----
+The system consists of two autonomous agents (Micro-Services):
 
-**Developed by Feras**
+1.  **Processor Agent (`processor_server.ts`)**:
+    *   **Role:** The "Reflexive" Agent.
+    *   **Trigger:** Reacts immediately to new MongoDB inserts (Resume Uploads).
+    *   **Capabilities:** Resume Parsing (LlamaParse), Data Extraction (Groq Llama 3), Candidate Scoring.
+    *   **Port:** 3001 (MCP), 9091 (Metrics).
+
+2.  **Researcher Agent (`research_server.ts`)**:
+    *   **Role:** The "Deep Thinking" Agent.
+    *   **Trigger:** Polls for processed candidates needing background checks.
+    *   **Capabilities:** Deep Web Research (Puppeteer), LangGraph Reasoning, Graph Analysis.
+    *   **Port:** 3002 (MCP), 9092 (Metrics).
+
+## ⚡ Performance Optimizations
+
+### Embedding Model (Quantized & Baked-In)
+We use `Xenova/all-MiniLM-L6-v2` for candidate vector scoring. To ensure industry-grade performance:
+*   **Quantization:** We force the usage of the **8-bit quantized model** (~23MB) instead of the full version.
+*   **Build-Time "Baking":** The model is downloaded during the `docker build` process (`scripts/download_model.ts`).
+*   **Zero-Latency Startup:** In production, the model loads instantly from the container's local filesystem (`/app/.cache`), eliminating runtime download risks and delays.
+
+## 📊 Observability Stack (Industry Standard)
+
+The application emits full telemetry compatible with the Cloud Native Computing Foundation (CNCF) standards.
+
+*   **Prometheus:** Scrapes operational metrics (Job Throughput, Latency, Error Rates).
+*   **Grafana:** Visualizes system health via comprehensive Dashboards.
+*   **Tempo:** Distributed Tracing. Logs every step of the AI Agent's thought process (Network Waterfall).
+
+### Deployment
+*   **Production:** `monitoring/docker-compose.prod.yaml` (Deploys Agents + Full Monitoring Stack on shared network).
+*   **Local:** standard `npm run dev` with local caching.
+
+## 🚀 How to Run
+
+### Local Development
+```bash
+# Terminal 1: Processor
+npm run processor
+
+# Terminal 2: Researcher
+npm run researcher
+```
+
+### Production Deployment (Cloud)
+```bash
+cd monitoring
+docker-compose -f docker-compose.prod.yaml up -d --build
+```
+This spins up:
+*   `processor` (Service)
+*   `researcher` (Service)
+*   `prometheus` (Port 9090)
+*   `grafana` (Port 3000)
+*   `tempo` (Port 3200)
+
+## 🛠 Tech Stack
+*   **Framework:** Model Context Protocol (MCP)
+*   **Runtime:** Node.js (TypeScript)
+*   **Database:** MongoDB (Mongoose)
+*   **AI:** Groq (Llama 3), Xenova Transformers (Local Embeddings)
+*   **Monitoring:** OpenTelemetry, Prometheus, Grafana, Tempo
