@@ -1,0 +1,76 @@
+
+version: '3.8'
+
+services:
+  # 1. Processing Service (Agent 1)
+  processor:
+    build: 
+      context: ../
+      dockerfile: Dockerfile
+    command: npm run processor
+    ports:
+      - "3001:3001"
+      - "9091:9091" # Metrics
+    env_file: ../.env
+    environment:
+      - PROCESSOR_PORT=3001
+      - PROCESSOR_METRICS_PORT=9091
+      - NODE_ENV=production
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+
+  # 2. Research Service (Agent 2)
+  researcher:
+    build: 
+      context: ../
+      dockerfile: Dockerfile
+    command: npm run researcher
+    ports:
+      - "3002:3002"
+      - "9092:9092" # Metrics
+    env_file: ../.env
+    environment:
+      - RESEARCHER_PORT=3002
+      - RESEARCHER_METRICS_PORT=9092
+      - NODE_ENV=production
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+
+  # 3. Tempo (Tracing)
+  tempo:
+    image: grafana/tempo:latest
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml
+      - tempo-data:/tmp/tempo
+    ports:
+      - "3200:3200" # Tempo HTTP
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+
+  # 4. Prometheus (Monitoring)
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.prod.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - processor
+      - researcher
+
+  # 4. Grafana (Dashboard)
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+
+volumes:
+  grafana-storage:
+  tempo-data:

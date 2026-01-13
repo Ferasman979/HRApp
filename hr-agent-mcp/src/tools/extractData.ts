@@ -1,10 +1,6 @@
 import Groq from 'groq-sdk';
-import { pipeline, env } from '@xenova/transformers';
 import Job from '../models/Job';
-
-// Configuration for local embeddings
-env.allowLocalModels = false;
-env.useBrowserCache = false;
+import { getExtractor } from '../services/modelLoader';
 
 // Interface for Extracted Data
 export interface ExtractedData {
@@ -39,7 +35,6 @@ export interface ExtractedData {
 }
 
 // RAG Configuration
-const EMBEDDING_MODEL = 'Xenova/all-MiniLM-L6-v2';
 const CHUNK_SIZE = 1500;
 const OVERLAP = 200;
 
@@ -51,13 +46,9 @@ function cosineSimilarity(vecA: number[], vecB: number[]): number {
     return (magA * magB) === 0 ? 0 : dotProduct / (magA * magB);
 }
 
-// Helper: Get Embeddings (Singleton)
-let extractor: any = null;
+// Helper: Get Embeddings (Uses Singleton Service)
 async function getEmbeddings(texts: string[]): Promise<number[][]> {
-    if (!extractor) {
-        console.log("Loading embedding model...");
-        extractor = await pipeline('feature-extraction', EMBEDDING_MODEL);
-    }
+    const extractor = await getExtractor();
 
     const embeddings: number[][] = [];
     for (const text of texts) {

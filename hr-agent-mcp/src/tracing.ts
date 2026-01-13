@@ -13,7 +13,7 @@ const sdk = new NodeSDK({
     }),
     traceExporter: new OTLPTraceExporter({
         // Point to Collector
-        url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://hr-app-collector:4317',
+        url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4317',
     }),
     instrumentations: [getNodeAutoInstrumentations()],
 });

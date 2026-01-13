@@ -8,3 +8,11 @@ datasources:
     access: proxy
     url: http://prometheus:9090
     isDefault: true
+
+  - name: Tempo
+    type: tempo
+    uid: tempo
+    url: http://tempo:3200
+    access: proxy
+    basicAuth: false
+

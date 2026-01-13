@@ -54,6 +54,11 @@ RUN npm install
 # Copy source
 COPY . .
 
+# BAKING THE MODEL: Run the download script during build time
+# This saves the model into ./.cache/xenova inside the image
+ENV XENOVA_CACHE_DIR=/app/.cache
+RUN npx ts-node scripts/download_model.ts
+
 # Compile TypeScript (Optional if using ts-node, but good practice to have tsc available)
 # RUN npm run build 
 

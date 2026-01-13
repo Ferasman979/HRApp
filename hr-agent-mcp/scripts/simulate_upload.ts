@@ -16,7 +16,7 @@ async function simulateUpload() {
         console.log("Inserting dummy application...");
         const app = await Application.create({
             jobId: new mongoose.Types.ObjectId("6769c9b147d159196c888fc9") as any, // Updated to real Job ID from screenshot
-            userId: "test_user_123",
+            userId: `test_user_${Date.now()}`,
             applicantName: "Test Candidate",
             applicantEmail: "test@example.com",
             resumeData: dummyPdfBuffer,

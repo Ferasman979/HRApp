@@ -1,0 +1,8 @@
+global:
+  scrape_interval: 15s # Standard prod interval
+
+scrape_configs:
+  - job_name: 'hr-agents'
+    static_configs:
+      # In Cloud/Docker Networking, we use the Service Name as the hostname
+      - targets: ['processor:9091', 'researcher:9092']
