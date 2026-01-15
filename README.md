@@ -1,8 +1,6 @@
 # HR Agent MCP System
 
-This repository hosts the backend intelligence for the HR Application, built using the **Model Context Protocol (MCP)**.
-
-It has been re-architected from a monolith into specialized **Micro-MCP Servers** for performance, scalability, and observability.
+This repository hosts the backend intelligence for the HR Application, built using  **Micro-MCP Servers** for performance, scalability, and observability.
 
 ## 🏗 System Architecture
 ```mermaid
@@ -45,7 +43,17 @@ The system consists of two autonomous agents (Micro-Services):
     *   **Capabilities:** Deep Web Research (Puppeteer), LangGraph Reasoning, Graph Analysis.
     *   **Port:** 3002 (MCP), 9092 (Metrics).
 
-## ⚡ Performance Optimizations
+### Why Micro-MCPs?
+*   **Scalable Intelligence:** Decouples "Reflexive" (Parsing) and "Reasoning" (Research) capabilities. This allows independent scaling—e.g., running 10 lightweight Parsers vs 2 memory-heavy Researchers—and enables upgrading the "Brain" of one agent (e.g. to GPT-4) without affecting the other.
+*   **Tool Locality:** The service *is* the tool. By adhering to MCP standards directly, we remove the need for a "translation layer" or API Gateway. The agents expose their capabilities natively to any MCP-compliant client.
+*   **Fault Isolation:** A crash in the browser-based Researcher (e.g. a stuck tab) cannot bring down the Parsing pipeline.
+
+### Middleware & Protocols
+*   **Embedded Auth Middleware:** Each Micro-MCP server includes built-in Express middleware to validate `x-api-key` headers, securing the agentic tools directly at the source.
+*   **gRPC for Telemetry:** We use **gRPC** (via OTLP) to transmit high-volume trace data to Tempo.
+    *   *Rationale:* gRPC's binary, compressed format is significantly more efficient than HTTP/JSON for observability data, ensuring that logging massive amounts of "thought process" data doesn't degrade agent performance.
+
+##  Performance Optimizations
 
 ### Embedding Model (Quantized & Baked-In)
 We use `Xenova/all-MiniLM-L6-v2` for candidate vector scoring. To ensure industry-grade performance:
@@ -63,9 +71,8 @@ The application emits full telemetry compatible with the Cloud Native Computing 
 
 ### Deployment
 *   **Production:** `monitoring/docker-compose.prod.yaml` (Deploys Agents + Full Monitoring Stack on shared network).
-*   **Local:** standard `npm run dev` with local caching.
 
-## 🚀 How to Run
+##  How to Run
 
 ### Local Development
 ```bash
