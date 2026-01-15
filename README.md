@@ -61,7 +61,7 @@ We use `Xenova/all-MiniLM-L6-v2` for candidate vector scoring. To ensure industr
 *   **Build-Time "Baking":** The model is downloaded during the `docker build` process (`scripts/download_model.ts`).
 *   **Zero-Latency Startup:** In production, the model loads instantly from the container's local filesystem (`/app/.cache`), eliminating runtime download risks and delays.
 
-## 📊 Observability Stack (Industry Standard)
+##  Observability Stack (Industry Standard)
 
 The application emits full telemetry compatible with the Cloud Native Computing Foundation (CNCF) standards.
 
@@ -72,6 +72,7 @@ The application emits full telemetry compatible with the Cloud Native Computing 
 ### Deployment
 *   **Production:** `monitoring/docker-compose.prod.yaml` (Deploys Agents + Full Monitoring Stack on shared network).
 
+##  How to Run
 ##  How to Run
 
 ### Local Development
@@ -95,7 +96,7 @@ This spins up:
 *   `grafana` (Port 3000)
 *   `tempo` (Port 3200)
 
-## 🛠 Tech Stack
+##  Tech Stack
 *   **Framework:** Model Context Protocol (MCP)
 *   **Runtime:** Node.js (TypeScript)
 *   **Database:** MongoDB (Mongoose)
