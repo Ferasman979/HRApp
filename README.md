@@ -106,7 +106,7 @@ This spins up:
 
 ## Legal
 This repository is public for portfolio purposes and code review only. No license is granted for the use, modification, or distribution of this software. All rights are reserved by the author.
-For more inquiries, please contact technocratz979@gmail.com
+For more inquiries, please contact ferasmahmood999gmail.com
 
 
 
