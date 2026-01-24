@@ -102,3 +102,15 @@ This spins up:
 *   **Database:** MongoDB (Mongoose)
 *   **AI:** Groq (Llama 3), Xenova Transformers (Local Embeddings)
 *   **Monitoring:** OpenTelemetry, Prometheus, Grafana, Tempo
+
+
+## Legal
+This repository is public for portfolio purposes and code review only. No license is granted for the use, modification, or distribution of this software. All rights are reserved by the author.
+For more inquiries, please contact technocratz979@gmail.com
+
+
+
+
+
+
+
