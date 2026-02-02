@@ -1,52 +1,27 @@
 
 FROM node:20-slim
 
-# Install dependencies for Puppeteer (Split to prevent timeouts)
+# Install system dependencies including those for Puppeteer
 RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg \
     ca-certificates \
-    fonts-liberation \
+    procps \
+    libxss1 \
     libasound2 \
     libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libc6 \
-    libcairo2 \
-    libcups2 \
-    libdbus-1-3 \
-    libexpat1 \
-    libfontconfig1 \
-    libgbm1 \
-    libgcc1 \
-    libglib2.0-0 \
     libgtk-3-0 \
-    libnspr4 \
-    libnss3 \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libstdc++6 \
-    libx11-6 \
-    libx11-xcb1 \
-    libxcb1 \
-    libxcomposite1 \
-    libxcursor1 \
-    libxdamage1 \
-    libxext6 \
-    libxfixes3 \
-    libxi6
-
-RUN apt-get install -y \
-    libxrandr2 \
-    libxrender1 \
-    libxss1 \
-    libxtst6 \
-    lsb-release \
-    wget \
-    xdg-utils \
+    libgbm1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
+
+# Skip Puppeteer's internal generic Chromium download (we use system chrome or specific version if needed)
+# But common issue: puppeteer script hangs.
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 # Install dependencies
 RUN npm install
@@ -55,14 +30,11 @@ RUN npm install
 COPY . .
 
 # BAKING THE MODEL: Run the download script during build time
-# This saves the model into ./.cache/xenova inside the image
 ENV XENOVA_CACHE_DIR=/app/.cache
-RUN npx ts-node scripts/download_model.ts
+# Use a timeout to fail fast if it hangs, or continue
+RUN npx ts-node scripts/download_model.ts || echo "Model download failed or skipped, will download at runtime"
 
-# Compile TypeScript (Optional if using ts-node, but good practice to have tsc available)
-# RUN npm run build 
-
-# Default command (can be overridden)
+# Default command
 CMD ["npm", "run", "worker"]
 
 EXPOSE 3000

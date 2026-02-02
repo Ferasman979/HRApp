@@ -185,6 +185,38 @@ export default async function MonitoringPage() {
                 </div>
             </div>
 
+            {/* Grafana Dashboard */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                    <h3 className="font-semibold text-gray-900">Infrastructure Metrics (Grafana)</h3>
+                    <a
+                        href={process.env.GRAFANA_PUBLIC_URL || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-500 hover:underline"
+                    >
+                        Open in Grafana ↗
+                    </a>
+                </div>
+                <div className="w-full h-[600px] bg-gray-50 relative">
+                    {process.env.GRAFANA_PUBLIC_URL ? (
+                        <iframe
+                            src={`${process.env.GRAFANA_PUBLIC_URL}?orgId=1&refresh=5s&theme=light&kiosk`}
+                            width="100%"
+                            height="100%"
+                            frameBorder="0"
+                            title="Grafana Dashboard"
+                        ></iframe>
+                    ) : (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
+                            <Activity className="w-12 h-12 mb-4 opacity-20" />
+                            <p>Grafana URL not configured.</p>
+                            <p className="text-sm mt-2">Set <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-600">GRAFANA_PUBLIC_URL</code> in your environment.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
         </div>
     );
 }

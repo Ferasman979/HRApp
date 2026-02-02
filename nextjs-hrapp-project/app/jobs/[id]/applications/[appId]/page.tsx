@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import dbConnect from "@/lib/services/db";
 import Application from "@/models/Application";
-import Job from "@/models/Job";
+import Job from "@/lib/models/Job";
 
 export const dynamic = "force-dynamic";
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import dbConnect from "@/lib/services/db";
-import Job from "@/models/Job";
+import Job from "@/lib/models/Job";
 import Application from "@/models/Application";
 
 export const dynamic = "force-dynamic";

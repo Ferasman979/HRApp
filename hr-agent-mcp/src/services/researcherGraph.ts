@@ -84,7 +84,7 @@ async function browserNode(state: ResearchState) {
 async function analystNode(state: any) {
     const pageData = state.currentScrape;
     const link = state.linksToVisit[state.currentIndex];
-    const requirements = state.jobRequirements || "Software Engineering roles";
+    const requirements = state.jobRequirements;
 
     // Handle Errors
     if (pageData.error) {
@@ -113,7 +113,7 @@ async function analystNode(state: any) {
     }
 
     // Custom instructions based on link type
-    let specificTask = "Summarize the key findings in 1-2 sentences, specifically highlighting relevance to the job requirements.";
+    let specificTask = "Summarize the key findings in 3-5 sentences, specifically highlighting relevance to the job requirements.";
     if (link.url.includes("github.com")) {
         specificTask = "Write a natural language paragraph summarizing the GitHub profile. Mention the user's bio, primary programming languages, and a general overview of their pinned or top repositories. Avoid technical lists or JSON formatting in the summary text.";
     }

@@ -1,0 +1,141 @@
+version: '3.8'
+
+services:
+  # ---------------------
+  # Database
+  # ---------------------
+  mongodb:
+    image: mongo:latest
+    container_name: hrapp_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - hrapp-net
+
+  # ---------------------
+  # Frontend (Next.js)
+  # ---------------------
+  hrapp-frontend:
+    build:
+      context: ./nextjs-hrapp-project
+      dockerfile: Dockerfile
+    container_name: hrapp_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/hrapp
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - GRAFANA_PUBLIC_URL=http://localhost:3001
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+    depends_on:
+      - mongodb
+      - otel-collector
+    networks:
+      - hrapp-net
+
+  # ---------------------
+  # Backend Agents (MCP)
+  # ---------------------
+  agent-processor:
+    build:
+      context: ./hr-agent-mcp
+      dockerfile: Dockerfile
+    container_name: agent_processor
+    command: ["npm", "run", "processor"]
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/hrapp
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+    depends_on:
+      - mongodb
+      - otel-collector
+    networks:
+      - hrapp-net
+
+  agent-researcher:
+    build:
+      context: ./hr-agent-mcp
+      dockerfile: Dockerfile
+    container_name: agent_researcher
+    command: ["npm", "run", "researcher"]
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/hrapp
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+    depends_on:
+      - mongodb
+      - otel-collector
+    networks:
+      - hrapp-net
+
+  # ---------------------
+  # Observability Stack
+  # ---------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: hrapp_prometheus
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - hrapp-net
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: hrapp_tempo
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./monitoring/tempo/tempo.yaml:/etc/tempo.yaml
+    ports:
+      - "3200:3200" # Tempo HTTP
+      - "4317"      # OTLP gRPC
+    networks:
+      - hrapp-net
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: hrapp_otel_collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./monitoring/otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317" # OTLP gRPC receiver
+      - "4318:4318" # OTLP HTTP receiver
+      - "8888:8888" # Metrics
+    depends_on:
+      - tempo
+      - prometheus
+    networks:
+      - hrapp-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: hrapp_grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+      - tempo
+    networks:
+      - hrapp-net
+
+volumes:
+  mongodb_data:
+
+networks:
+  hrapp-net:
+    driver: bridge

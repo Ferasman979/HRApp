@@ -1,72 +1,58 @@
 import Link from 'next/link';
-import dbConnect from '@/lib/services/db';
-import Job from '@/models/Job';
+import { Briefcase, MessageSquare, PlusCircle } from 'lucide-react';
 
-// Force dynamic to ensure we always get the latest jobs
-export const dynamic = 'force-dynamic';
-
-export default async function JobsPage() {
-    await dbConnect();
-    // Use .lean() to get plain JavaScript objects efficiently
-    const jobs = await Job.find({}).sort({ createdAt: -1 }).lean();
-
+export default function JobsPage() {
     return (
-        <main className="min-h-screen bg-gray-50 p-8">
-            <div className="max-w-6xl mx-auto">
-                <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">Active Job Postings</h1>
+        <div className="min-h-screen bg-gray-900 text-white p-8">
+            <div className="max-w-4xl mx-auto">
+                <h1 className="text-4xl font-bold mb-8 text-center bg-gradient-to-r from-blue-400 to-indigo-500 text-transparent bg-clip-text">
+                    Jobs Hub
+                </h1>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
+                    {/* Option 1: Manage Jobs */}
                     <Link
-                        href="/"
-                        className="text-gray-600 hover:text-gray-900 font-medium"
+                        href="/jobs/manage"
+                        className="group bg-gray-800 border border-gray-700 rounded-xl p-8 hover:bg-gray-750 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20 hover:border-blue-500/50"
                     >
-                        ← Back to Dashboard
+                        <div className="flex flex-col items-center text-center space-y-4">
+                            <div className="bg-blue-500/10 p-4 rounded-full group-hover:bg-blue-500/20 transition-colors">
+                                <Briefcase className="w-12 h-12 text-blue-400" />
+                            </div>
+                            <h2 className="text-2xl font-semibold text-white group-hover:text-blue-400 transition-colors">
+                                Manage Jobs
+                            </h2>
+                            <p className="text-gray-400">
+                                Create, view, and manage job postings. Monitor applicants and status.
+                            </p>
+                            <span className="text-sm font-medium text-blue-400 pt-4 flex items-center">
+                                View Dashboard <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
+                            </span>
+                        </div>
+                    </Link>
+
+                    {/* Option 2: Job Chatbot */}
+                    <Link
+                        href="/chatbot"
+                        className="group bg-gray-800 border border-gray-700 rounded-xl p-8 hover:bg-gray-750 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/20 hover:border-indigo-500/50"
+                    >
+                        <div className="flex flex-col items-center text-center space-y-4">
+                            <div className="bg-indigo-500/10 p-4 rounded-full group-hover:bg-indigo-500/20 transition-colors">
+                                <MessageSquare className="w-12 h-12 text-indigo-400" />
+                            </div>
+                            <h2 className="text-2xl font-semibold text-white group-hover:text-indigo-400 transition-colors">
+                                Job Chatbot
+                            </h2>
+                            <p className="text-gray-400">
+                                AI-powered assistant to generate job descriptions and requirements.
+                            </p>
+                            <span className="text-sm font-medium text-indigo-400 pt-4 flex items-center">
+                                Launch Chatbot <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
+                            </span>
+                        </div>
                     </Link>
                 </div>
-
-                {jobs.length === 0 ? (
-                    <div className="bg-white rounded-lg shadow-sm p-12 text-center text-gray-500">
-                        <p className="text-lg">No jobs posted yet.</p>
-                        <p className="text-sm mt-2">Create jobs in your admin tool to see them here.</p>
-                    </div>
-                ) : (
-                    <div className="grid gap-6">
-                        {jobs.map((job: any) => (
-                            <div key={job._id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:shadow-md transition-shadow">
-                                <div>
-                                    <h2 className="text-xl font-bold text-gray-900 mb-1">{job.title}</h2>
-                                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                                        <span className="flex items-center gap-1">
-                                            📍 {job.location || 'Remote'}
-                                        </span>
-                                        <span className="flex items-center gap-1">
-                                            📅 Posted {new Date(job.createdAt).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                    <p className="mt-3 text-gray-600 line-clamp-2 max-w-2xl">
-                                        {job.description}
-                                    </p>
-                                </div>
-                                <div className="flex flex-col gap-2 min-w-[140px]">
-                                    <Link
-                                        href={`/jobs/${job._id}`}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white text-center px-4 py-2 rounded-lg font-medium transition-colors"
-                                    >
-                                        View Applicants
-                                    </Link>
-                                    <a
-                                        href={`http://localhost:3001/job/${job._id}`} // Assuming easy-apply-site runs on 3001
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-600 hover:text-blue-800 text-sm text-center font-medium"
-                                    >
-                                        View Live Posting ↗
-                                    </a>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
             </div>
-        </main>
+        </div>
     );
 }

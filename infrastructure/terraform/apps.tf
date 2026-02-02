@@ -28,6 +28,10 @@ resource "azurerm_container_app" "frontend" {
         name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
         value = "http://hr-app-collector:4317"
       }
+      env {
+        name  = "TAVILY_API_KEY"
+        value = var.tavily_api_key
+      }
     }
   }
 
@@ -138,6 +142,10 @@ resource "azurerm_container_app" "researcher" {
       env {
         name  = "LLAMA_PARSE_API_KEY"
         value = var.llama_parse_api_key
+      }
+      env {
+        name  = "TAVILY_API_KEY"
+        value = var.tavily_api_key
       }
     }
   }

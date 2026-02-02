@@ -8,3 +8,5 @@ easy-apply-site/
 *.tfstate
 *.tfstate.backup
 .terraform/
+
+.env

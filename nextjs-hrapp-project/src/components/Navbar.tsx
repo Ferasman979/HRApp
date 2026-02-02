@@ -29,11 +29,18 @@ export default function Navbar() {
                                 Home
                             </Link>
                             <Link
-                                href="/chatbot"
-                                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${pathname === "/chatbot" ? "bg-gray-900 text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                                href="/jobs"
+                                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${pathname.startsWith("/jobs") ? "bg-gray-900 text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white"
                                     }`}
                             >
-                                Job Chatbot
+                                Jobs
+                            </Link>
+                            <Link
+                                href="/dashboard"
+                                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${pathname === "/dashboard" ? "bg-gray-900 text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                                    }`}
+                            >
+                                Grants Dashboard
                             </Link>
                             <Link
                                 href="/admin/monitoring"

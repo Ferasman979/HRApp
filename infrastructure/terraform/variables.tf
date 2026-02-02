@@ -45,3 +45,9 @@ variable "llama_parse_api_key" {
   type        = string
   sensitive   = true
 }
+
+variable "tavily_api_key" {
+  description = "API Key for Tavily"
+  type        = string
+  sensitive   = true
+}
