@@ -1,8 +1,8 @@
-name: Deploy to Azure
+name: Deploy to Azure (Sequential)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "dev" ]
   workflow_dispatch:
 
 permissions:
@@ -10,72 +10,12 @@ permissions:
   contents: read
 
 env:
-  ARM_CLIENT_ID: ${{ steps.creds.outputs.clientId }}
-  ARM_SUBSCRIPTION_ID: ${{ steps.creds.outputs.subscriptionId }}
-  ARM_TENANT_ID: ${{ steps.creds.outputs.tenantId }}
-
+  ACR_NAME: hrappterraformferas
+  RG_NAME: hr-app-rg-terraform
 
 jobs:
-  # 1. Infrastructure Checks & Base Setup
-  infra-check:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    outputs:
-      acr_server: ${{ steps.get_acr.outputs.acr_server }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Terraform Init
-        working-directory: ./infrastructure/terraform
-        run: terraform init
-
-      - name: Create terraform.tfvars
-        working-directory: ./infrastructure/terraform
-        run: echo "${{ secrets.TFVARS_FILE }}" > terraform.tfvars
-
-      # Ensure ACR exists so we can push to it.
-      # We target ONLY the ACR resource.
-      - name: Ensure ACR Exists
-        working-directory: ./infrastructure/terraform
-        run: terraform apply -target="azurerm_container_registry.acr" -auto-approve
-
-
-      - name: Get ACR Login Server
-        id: get_acr
-        working-directory: ./infrastructure/terraform
-        run: |
-          ACR_SERVER=$(terraform output -raw acr_login_server)
-          echo "acr_server=$ACR_SERVER" >> $GITHUB_OUTPUT
-
-  # 2. Parallel Build & Push
-  build-and-push:
-    needs: infra-check
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - name: frontend
-            context: ./nextjs-hrapp-project
-            image: hr-app-frontend
-          - name: agent
-            context: ./hr-agent-mcp
-            image: hr-agent-mcp
-          - name: prometheus
-            context: ./monitoring/prometheus
-            image: prometheus-custom
-          - name: tempo
-            context: ./monitoring/tempo
-            image: tempo-custom
-          - name: grafana
-            context: ./monitoring/grafana
-            image: grafana-custom
     steps:
       - uses: actions/checkout@v4
 
@@ -88,41 +28,95 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Login to ACR
-        run: |
-          az acr login --name ${{ needs.infra-check.outputs.acr_server }}
+        run: az acr login --name ${{ env.ACR_NAME }}
 
-      - name: Build and Push ${{ matrix.name }}
+      # --- BUILD STEPS (Sequential) ---
+      
+      - name: Build and Push Frontend
         uses: docker/build-push-action@v5
         with:
-          context: ${{ matrix.context }}
+          context: ./nextjs-hrapp-project
           push: true
-          tags: ${{ needs.infra-check.outputs.acr_server }}/${{ matrix.image }}:latest
+          tags: ${{ env.ACR_NAME }}.azurecr.io/hr-app-frontend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # 3. Deploy App (Full Terraform Apply)
-  deploy:
-    needs: [infra-check, build-and-push]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Azure Login
-        uses: azure/login@v1
+      - name: Build and Push Agent
+        uses: docker/build-push-action@v5
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          context: ./hr-agent-mcp
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/hr-agent-mcp:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - name: Build and Push Prometheus
+        uses: docker/build-push-action@v5
+        with:
+          context: ./monitoring/prometheus
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/prometheus-custom:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Terraform Init
-        working-directory: ./infrastructure/terraform
-        run: terraform init
+      - name: Build and Push Tempo
+        uses: docker/build-push-action@v5
+        with:
+          context: ./monitoring/tempo
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/tempo-custom:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Create terraform.tfvars
-        working-directory: ./infrastructure/terraform
-        run: echo "${{ secrets.TFVARS_FILE }}" > terraform.tfvars
+      - name: Build and Push Grafana
+        uses: docker/build-push-action@v5
+        with:
+          context: ./monitoring/grafana
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/grafana-custom:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Terraform Apply (Full)
-        working-directory: ./infrastructure/terraform
-        run: terraform apply -auto-approve
+      # --- DEPLOY STEPS ---
+
+      - name: Deploy Frontend
+        run: |
+          az containerapp update \
+            --name hr-app-frontend \
+            --resource-group ${{ env.RG_NAME }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/hr-app-frontend:${{ github.sha }}
+
+      - name: Deploy Agent (Processor)
+        run: |
+          az containerapp update \
+            --name hr-mcp-processor \
+            --resource-group ${{ env.RG_NAME }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/hr-agent-mcp:${{ github.sha }}
+
+      - name: Deploy Agent (Researcher)
+        run: |
+          az containerapp update \
+            --name hr-mcp-researcher \
+            --resource-group ${{ env.RG_NAME }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/hr-agent-mcp:${{ github.sha }}
+
+      - name: Deploy Prometheus
+        run: |
+          az containerapp update \
+            --name hr-app-prometheus \
+            --resource-group ${{ env.RG_NAME }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/prometheus-custom:${{ github.sha }}
+
+      - name: Deploy Grafana
+        run: |
+          az containerapp update \
+            --name hr-app-grafana \
+            --resource-group ${{ env.RG_NAME }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/grafana-custom:${{ github.sha }}
+
+      - name: Deploy Tempo
+        run: |
+          az containerapp update \
+            --name hr-app-tempo \
+            --resource-group ${{ env.RG_NAME }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/tempo-custom:${{ github.sha }}
