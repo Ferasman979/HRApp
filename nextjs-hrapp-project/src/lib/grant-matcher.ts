@@ -1,5 +1,10 @@
-import { IEmployee } from "@/lib/models/Employee";
 import { searchTavily } from "./tavily";
+
+export interface Employee {
+    id: string;
+    email: string;
+    data: any; // Dynamic JSON
+}
 
 export interface GrantResult {
     cohortDescription: string;
@@ -7,25 +12,37 @@ export interface GrantResult {
     grants: any[];
 }
 
-export async function findGrantsForCohorts(employees: IEmployee[]): Promise<GrantResult[]> {
+export async function findGrantsForCohorts(employees: Employee[]): Promise<GrantResult[]> {
     // 1. Identify Cohorts based on demographics
-    const cohorts: Record<string, IEmployee[]> = {};
+    const cohorts: Record<string, Employee[]> = {};
 
     employees.forEach(emp => {
-        const demos = emp.demographics;
-        // Create a signature based on relevant grant criteria
+        const data = emp.data || {};
         const keys = [];
-        if (demos.gender && demos.gender !== 'Male') keys.push(demos.gender); // Focus on underrepresented
-        if (demos.veteranStatus && demos.veteranStatus === 'Yes') keys.push('Veteran');
-        if (demos.disability && demos.disability !== 'No') keys.push('Disability');
-        if (demos.ethnicity && demos.ethnicity !== 'White') keys.push(demos.ethnicity);
+
+        // Privacy-safe extraction: Only pull known demographic keywords
+        // PII Safeguard: Explicitly ignore name, email, phone, address, id, etc.
+        // We look for values that might be relevant to grants (gender, veteran, disability, ethnicity)
+        // This is a naive heuristic matching. In production, mapping or ML would be better.
+
+        for (const [key, value] of Object.entries(data)) {
+            const k = key.toLowerCase();
+            const v = String(value).toLowerCase();
+
+            // Skip PII keys
+            if (['name', 'email', 'phone', 'address', 'id', 'sin', 'ssn', 'role', 'title'].includes(k)) continue;
+
+            // Heuristics for grant-relevant traits
+            if (v === 'female' || v === 'woman') keys.push('Female');
+            if (v === 'veteran' || v === 'yes' && k.includes('veteran')) keys.push('Veteran');
+            if (v !== 'no' && k.includes('disability')) keys.push('Disability');
+            if (['asian', 'black', 'indigenous', 'latino', 'hispanic'].some(t => v.includes(t))) keys.push(String(value));
+        }
 
         // General Tech grants if no specific demographics?
         if (keys.length === 0) keys.push('General Tech Worker');
 
         // Create groups. 
-        // Note: An employee might belong to multiple cohorts in a real complex system. 
-        // For efficiency, we group by the *combination* of traits first.
         const signature = keys.sort().join(" + ");
 
         if (!cohorts[signature]) cohorts[signature] = [];
@@ -36,14 +53,14 @@ export async function findGrantsForCohorts(employees: IEmployee[]): Promise<Gran
     const results: GrantResult[] = [];
 
     for (const [signature, group] of Object.entries(cohorts)) {
-        // Construct query
-        const query = `Grants and funding for ${signature} employees in technology sector Canada`; // Assuming Canada/Tech context from history
+        // Construct query - Strict Template ensuring only signature traits are used
+        const query = `Grants and funding for ${signature} employees in technology sector Canada`;
 
         const grants = await searchTavily(query);
 
         results.push({
             cohortDescription: signature,
-            employees: group.map(e => e.name),
+            employees: group.map(e => e.data?.name || e.email), // Display name/email in UI result, but NOT in query
             grants: grants
         });
     }

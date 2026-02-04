@@ -1,51 +1,54 @@
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/services/db";
-import Employee from "@/lib/models/Employee";
+import prisma from "@/lib/prisma";
 
 export async function POST(req: Request) {
     try {
-        await dbConnect();
-
-        // Parse CSV text from body
-        // Expecting raw CSV string or JSON with csv data?
-        // Let's support JSON { csvData: [...] } or just raw list.
-        // Usually file upload -> FormData. But for simplicity, let's assume client parses CSV to JSON or sends JSON array.
-        // Actually, user said "populates a csv". I'll assume the frontend will parse CSV to JSON (using papaparse) and send JSON.
-
         const { employees } = await req.json();
 
         if (!Array.isArray(employees)) {
             return NextResponse.json({ error: "Invalid data format. Expected array of employees." }, { status: 400 });
         }
 
-        const upsertOperations = employees.map((emp: any) => ({
-            updateOne: {
-                filter: { email: emp.email },
-                update: { $set: emp },
-                upsert: true
-            }
-        }));
+        const upsertPromises = employees.map((emp: any) => {
+            // Extract email for the unique key, store everything else in 'data'
+            const { email, ...rest } = emp;
 
-        if (upsertOperations.length > 0) {
-            await Employee.bulkWrite(upsertOperations);
-        }
+            if (!email) {
+                // Skip records without email or handle error
+                return Promise.resolve(null);
+            }
+
+            return prisma.employee.upsert({
+                where: { email: email },
+                update: {
+                    data: rest // Update the dynamic data
+                },
+                create: {
+                    email: email,
+                    data: rest
+                }
+            });
+        });
+
+        const results = (await Promise.all(upsertPromises)).filter(Boolean); // Filter out nulls
 
         return NextResponse.json({
             success: true,
-            count: upsertOperations.length,
-            message: `Successfully processed ${upsertOperations.length} employees.`
+            count: results.length,
+            message: `Successfully processed ${results.length} employees.`
         });
 
     } catch (error: any) {
         console.error("Error importing employees:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: error.message, stack: error.stack }, { status: 500 });
     }
 }
 
 export async function GET() {
     try {
-        await dbConnect();
-        const employees = await Employee.find({}).sort({ name: 1 });
+        const employees = await prisma.employee.findMany({
+            orderBy: { email: 'asc' }
+        });
         return NextResponse.json(employees);
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });

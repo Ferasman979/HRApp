@@ -29,30 +29,38 @@ if ([string]::IsNullOrWhiteSpace($AcrServer)) {
 }
 Write-Host ">>> ACR Server: $AcrServer" -ForegroundColor Yellow
 
-# 3. Build and Push Images
-Write-Host "`n>>> 3. Logging into ACR..." -ForegroundColor Cyan
-az acr login --name $AcrServer.Split(".")[0]
+# ------------------------------------------------------------------
+# 2. Provision ACR Only (to allow image pushing)
+# ... (Assuming ACR step is done above) ...
 
-Pop-Location # Go back to root
+Pop-Location # Go back to root (Exit Terraform dir after Step 2)
 
-function Build-And-Push {
+# 3. Build and Push Images via ACR Tasks (No Docker Desktop required)
+# ------------------------------------------------------------------
+Write-Host "`n>>> 3. Building Images in Azure (ACR Tasks)..." -ForegroundColor Cyan
+Write-Host "Using 'az acr build' to build images in the cloud. This avoids local Docker dependencies."
+
+function Build-ACR-Task {
     param($Context, $ImageName)
-    $FullImage = "$AcrServer/$ImageName`:latest"
-    Write-Host "    Building $FullImage..." -ForegroundColor Green
-    docker build -t $FullImage $Context
-    if ($LASTEXITCODE -ne 0) { throw "Docker build failed for $ImageName" }
+    $FullImage = "$ImageName`:latest"
+    Write-Host "    Building and Pushing $FullImage to $AcrServer..." -ForegroundColor Green
     
-    Write-Host "    Pushing $FullImage..." -ForegroundColor Green
-    docker push $FullImage
-    if ($LASTEXITCODE -ne 0) { throw "Docker push failed for $ImageName" }
+    # Run ACR Build
+    az acr build --registry $AcrServer.Split(".")[0] --image $FullImage $Context
+    
+    if ($LASTEXITCODE -ne 0) { throw "ACR Build failed for $ImageName" }
 }
 
-Write-Host "`n>>> 4. Building and Pushing Docker Images..." -ForegroundColor Cyan
-Build-And-Push "./nextjs-hrapp-project" "hr-app-frontend"
-Build-And-Push "./hr-agent-mcp" "hr-agent-mcp"
-Build-And-Push "./monitoring/prometheus" "prometheus-custom"
-Build-And-Push "./monitoring/tempo" "tempo-custom"
-Build-And-Push "./monitoring/grafana" "grafana-custom"
+# Application Images
+Build-ACR-Task "./nextjs-hrapp-project" "hr-app-frontend"
+Build-ACR-Task "./hr-agent-mcp" "hr-agent-mcp"
+
+# Monitoring Images
+Build-ACR-Task "./monitoring/prometheus" "prometheus-custom"
+Build-ACR-Task "./monitoring/tempo" "tempo-custom"
+Build-ACR-Task "./monitoring/grafana" "grafana-custom"
+
+
 
 # 4. Provision Everything Else
 Write-Host "`n>>> 5. Provisioning Full Infrastructure..." -ForegroundColor Cyan

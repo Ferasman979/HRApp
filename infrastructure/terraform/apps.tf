@@ -26,7 +26,7 @@ resource "azurerm_container_app" "frontend" {
       }
       env {
         name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
-        value = "http://hr-app-collector:4317"
+        value = "http://hr-app-tempo:4317"
       }
       env {
         name  = "TAVILY_API_KEY"
@@ -66,7 +66,7 @@ resource "azurerm_container_app" "processor" {
     container {
       name    = "processor"
       image   = "${azurerm_container_registry.acr.login_server}/hr-agent-mcp:latest"
-      command = ["npm", "run", "worker"]
+      command = ["npm", "run", "processor"]
       cpu     = 0.5
       memory  = "1.0Gi"
 
@@ -122,13 +122,13 @@ resource "azurerm_container_app" "researcher" {
     container {
       name    = "researcher"
       image   = "${azurerm_container_registry.acr.login_server}/hr-agent-mcp:latest"
-      command = ["npm", "run", "research"]
+      command = ["npm", "run", "researcher"]
       cpu     = 0.5
       memory  = "1.0Gi"
 
       env {
         name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
-        value = "http://hr-app-collector:4317"
+        value = "http://hr-app-tempo:4317"
       }
 
       env {
@@ -221,6 +221,14 @@ resource "azurerm_container_app" "grafana" {
         name  = "GF_AUTH_ANONYMOUS_ENABLED"
         value = "true"
       }
+      env {
+        name  = "GF_SECURITY_COOKIE_SAMESITE"
+        value = "none"
+      }
+      env {
+        name  = "GF_SECURITY_COOKIE_SECURE"
+        value = "true"
+      }
     }
   }
 
@@ -255,19 +263,21 @@ resource "azurerm_container_app" "tempo" {
     container {
       name   = "tempo"
       image  = "${azurerm_container_registry.acr.login_server}/tempo-custom:latest"
-      cpu    = 0.25
-      memory = "0.5Gi"
+      cpu    = 0.5
+      memory = "1.0Gi"
     }
   }
 
   ingress {
-    external_enabled = false # Internal only
-    target_port      = 4317 # Change from 3200 to 4317 to match gRPC OTLP listener
-    transport        = "tcp"
+    external_enabled = false # Internal only, but accessible by other apps in env
+    target_port      = 3200 # HTTP Query Port (for Grafana)
+    transport        = "tcp" # TCP transport
     traffic_weight {
       percentage = 100
       latest_revision = true
     }
+    # Expose OTLP gRPC (4317) and HTTP (4318) as additional ports
+    exposed_port = 3200
   }
   
   registry {

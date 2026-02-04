@@ -2,7 +2,7 @@
 FROM node:20-slim
 
 # Install system dependencies including those for Puppeteer
-RUN apt-get update && apt-get install -y \
+RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
     wget \
     gnupg \
     ca-certificates \
@@ -23,8 +23,8 @@ COPY package*.json ./
 # But common issue: puppeteer script hangs.
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
-# Install dependencies
-RUN npm install
+# Install dependencies (clean install)
+RUN npm ci
 
 # Copy source
 COPY . .
