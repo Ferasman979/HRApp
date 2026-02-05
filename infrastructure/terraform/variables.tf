@@ -18,7 +18,7 @@ variable "acr_name" {
 variable "env_name" {
   description = "Name of the Container Apps Environment"
   type        = string
-  default     = "hr-app-env-terraform"
+  default     = "hr-app-env-terraform-v2"
 }
 
 # --- SECRETS ---
