@@ -67,8 +67,8 @@ resource "azurerm_container_app" "processor" {
       name    = "processor"
       image   = "${azurerm_container_registry.acr.login_server}/hr-agent-mcp:latest"
       command = ["npm", "run", "processor"]
-      cpu     = 0.5
-      memory  = "1.0Gi"
+      cpu     = 1.0
+      memory  = "2.0Gi"
 
       env {
         name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
@@ -179,7 +179,7 @@ resource "azurerm_container_app" "prometheus" {
 
   ingress {
     external_enabled = false
-    target_port      = 3002
+    target_port      = 9090
     transport        = "tcp"
     traffic_weight {
       percentage = 100
