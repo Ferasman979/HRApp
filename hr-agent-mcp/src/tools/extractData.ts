@@ -213,7 +213,7 @@ TARGET JSON FORMAT:
 5. WARNING: Do NOT output root domains like "github.com" if a path is available.
 6. Look for "Website:", "GitHub:", "LinkedIn:" labels.
 
-JSON Output: { "links": [ { "type": "string", "url": "string" } ] }`
+JSON Output: { "links": [ { "type": "github", "url": "https://github.com/username" } ] }`
                     },
                     { role: 'user', content: `Please find the links in this resume text:\n\n${context}` }
                 ],
@@ -248,6 +248,14 @@ JSON Output: { "links": [ { "type": "string", "url": "string" } ] }`
                     if (l.type) {
                         l.type = l.type.toLowerCase();
                         if (l.type === 'website') l.type = 'portfolio'; // Map website -> portfolio
+                    } else {
+                        l.type = 'other';
+                    }
+
+                    // Enforce Enum
+                    const allowedTypes = ['github', 'linkedin', 'portfolio', 'other'];
+                    if (!allowedTypes.includes(l.type)) {
+                        l.type = 'other';
                     }
 
                     // Reject Roots
