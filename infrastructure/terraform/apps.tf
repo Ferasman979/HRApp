@@ -6,6 +6,8 @@ resource "azurerm_container_app" "frontend" {
   revision_mode                = "Single"
 
   template {
+    min_replicas = 1
+    max_replicas = 1
     container {
       name   = "frontend"
       image  = "${azurerm_container_registry.acr.login_server}/hr-app-frontend:latest"
@@ -63,6 +65,8 @@ resource "azurerm_container_app" "processor" {
   revision_mode                = "Single"
 
   template {
+    min_replicas = 1
+    max_replicas = 1
     container {
       name    = "processor"
       image   = "${azurerm_container_registry.acr.login_server}/hr-agent-mcp:latest"
@@ -119,6 +123,8 @@ resource "azurerm_container_app" "researcher" {
   revision_mode                = "Single"
 
   template {
+    min_replicas = 1
+    max_replicas = 1
     container {
       name    = "researcher"
       image   = "${azurerm_container_registry.acr.login_server}/hr-agent-mcp:latest"
@@ -169,6 +175,8 @@ resource "azurerm_container_app" "prometheus" {
   revision_mode                = "Single"
 
   template {
+    min_replicas = 1
+    max_replicas = 1
     container {
       name   = "prometheus"
       image  = "${azurerm_container_registry.acr.login_server}/prometheus-custom:latest"
@@ -207,6 +215,8 @@ resource "azurerm_container_app" "grafana" {
   revision_mode                = "Single"
 
   template {
+    min_replicas = 1
+    max_replicas = 1
     container {
       name   = "grafana"
       image  = "${azurerm_container_registry.acr.login_server}/grafana-custom:latest" # Assumes already built
@@ -260,6 +270,8 @@ resource "azurerm_container_app" "tempo" {
   revision_mode                = "Single"
 
   template {
+    min_replicas = 1
+    max_replicas = 1
     container {
       name   = "tempo"
       image  = "${azurerm_container_registry.acr.login_server}/tempo-custom:latest"
