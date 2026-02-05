@@ -92,7 +92,7 @@ resource "azurerm_container_app" "processor" {
   
   ingress {
     external_enabled = false
-    target_port      = 9090
+    target_port      = 3001
     transport        = "auto"
     traffic_weight {
       percentage = 100
@@ -179,7 +179,7 @@ resource "azurerm_container_app" "prometheus" {
 
   ingress {
     external_enabled = false
-    target_port      = 9090
+    target_port      = 3002
     transport        = "tcp"
     traffic_weight {
       percentage = 100
