@@ -73,7 +73,6 @@ The application emits full telemetry compatible with the Cloud Native Computing 
 *   **Production:** `monitoring/docker-compose.prod.yaml` (Deploys Agents + Full Monitoring Stack on shared network).
 
 ##  How to Run
-##  How to Run
 
 ### Local Development
 ```bash
