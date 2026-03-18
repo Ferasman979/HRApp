@@ -1,6 +1,6 @@
 # HR Agent MCP System
 
-This repository hosts the backend intelligence for the HR Application, built using  **Micro-MCP Servers** for performance, scalability, and observability.
+This repository hosts the backend intelligence for the Smart Recruitment Platform that streamlines the hiring process by automatically analyzing resumes and verifying candidate backgrounds. Built using  **MCP Servers** for performance, scalability, and observability.
 
 ## 🏗 System Architecture
 ```mermaid
